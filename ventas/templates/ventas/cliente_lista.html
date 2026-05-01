@@ -1,0 +1,281 @@
+{% extends 'ventas/base.html' %}
+
+{% block title %}Clientes{% endblock %}
+
+{% block content %}
+<!-- 🔝 Header con acciones -->
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4 animate-fade">
+  <div>
+    <h2 class="fw-bold mb-1 d-flex align-items-center gap-2">
+      <i class="bi bi-people-fill text-primary"></i> Clientes
+    </h2>
+    <p class="text-muted mb-0 small">Gestiona tu base de clientes y mantén el contacto</p>
+  </div>
+  <a href="{% url 'cliente_nuevo' %}" class="btn btn-primary btn-lg shadow-sm">
+    <i class="bi bi-person-plus-fill"></i> Nuevo Cliente
+  </a>
+</div>
+
+<!-- 🔍 Barra de búsqueda moderna -->
+<div class="card border-0 shadow-sm mb-4 animate-fade" style="animation-delay: 0.1s">
+  <div class="card-body p-3 p-md-4">
+    <form method="get" class="d-flex flex-column flex-md-row gap-3" role="search">
+      <div class="position-relative flex-grow-1">
+        <i class="bi bi-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted"></i>
+        <input 
+          type="text" 
+          name="q" 
+          value="{{ q }}" 
+          placeholder="Buscar por nombre o teléfono..." 
+          class="form-control form-control-lg ps-5"
+          aria-label="Buscar cliente"
+        >
+      </div>
+      <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary px-4">
+          <i class="bi bi-search-heart"></i> Buscar
+        </button>
+        {% if q %}
+        <a href="{% url 'cliente_lista' %}" class="btn btn-outline-secondary px-3" title="Limpiar búsqueda">
+          <i class="bi bi-x-lg"></i>
+        </a>
+        {% endif %}
+      </div>
+    </form>
+    
+    <!-- Filtros rápidos -->
+    <div class="d-flex gap-2 mt-3 flex-wrap">
+      <a href="?activo=1" class="badge bg-success-subtle text-success-emphasis text-decoration-none px-3 py-2">
+        <i class="bi bi-check-circle"></i> Activos
+      </a>
+      <a href="?activo=0" class="badge bg-secondary-subtle text-secondary-emphasis text-decoration-none px-3 py-2">
+        <i class="bi bi-x-circle"></i> Inactivos
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- 📋 Tabla de clientes -->
+<div class="card border-0 shadow-sm animate-fade" style="animation-delay: 0.2s">
+  <div class="card-header bg-transparent border-0 pb-0">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+      <h5 class="fw-semibold mb-0">
+        <i class="bi bi-list-ul me-1"></i> Listado
+        {% if clientes %}
+          <span class="badge bg-primary-subtle text-primary-emphasis ms-2">{{ clientes|length }} registrado{{ clientes|length|pluralize }}</span>
+        {% endif %}
+      </h5>
+      <div class="d-flex gap-2">
+        <button class="btn btn-sm btn-outline-secondary" title="Refrescar" onclick="window.location.reload()">
+          <i class="bi bi-arrow-clockwise"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+  
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="bg-light">
+        <tr>
+          <th scope="col" class="ps-4">Cliente</th>
+          <th scope="col">Teléfono</th>
+          <th scope="col" class="text-end pe-4" style="width: 50px;"></th>
+        </tr>
+      </thead>
+      <tbody>
+  {% for c in clientes %}
+
+  <tr class="animate-fade hover-row">
+    
+    <!-- 👤 Nombre con avatar (CLICKEABLE para EDITAR cliente) -->
+    <td class="ps-4" onclick="event.stopPropagation();">
+      <div class="d-flex align-items-center gap-3">
+        <div class="bg-primary-subtle text-primary-emphasis rounded-circle d-flex align-items-center justify-content-center" 
+             style="width: 40px; height: 40px; font-weight: 600; font-size: 0.9rem; flex-shrink: 0;">
+          {{ c.nombre|slice:":1"|upper }}{{ c.apellido|slice:":1"|upper }}
+        </div>
+        <div class="min-width-0">
+          <a href="{% url 'cliente_editar' c.pk %}" 
+             class="fw-semibold text-decoration-none text-dark d-block text-truncate" 
+             title="Editar: {{ c.nombre_completo }}"
+             onclick="event.stopPropagation();">
+            {{ c.nombre_completo }}
+          </a>
+          {% if c.email %}
+            <small class="text-muted d-none d-md-block text-truncate" style="max-width: 200px;">{{ c.email }}</small>
+          {% endif %}
+        </div>
+      </div>
+    </td>
+    
+    <!-- 📞 Teléfono (CLICKEABLE para ver VENTAS del cliente) -->
+    <td class="text-nowrap">
+      {% if c.telefono %}
+        <a href="{% url 'cliente_ventas_detalle' c.pk %}" 
+           class="text-decoration-none text-dark fw-medium d-inline-flex align-items-center gap-1"
+           title="Ver historial de ventas de {{ c.nombre_completo }}">
+          <i class="bi bi-telephone-fill text-muted"></i>{{ c.telefono }}
+          <i class="bi bi-chevron-right small text-muted opacity-50"></i>
+        </a>
+      {% else %}
+        <span class="text-muted small">—</span>
+      {% endif %}
+    </td>
+    
+    <!-- 🗑️ Botón discreto de desactivar -->
+    <td class="text-end pe-4 py-3">
+      <a href="{% url 'cliente_eliminar' c.pk %}" 
+         class="btn btn-sm btn-link text-danger p-0"
+         title="{% if c.activo %}Desactivar{% else %}Activar{% endif %} cliente"
+         onclick="return confirm('¿Estás seguro de {% if c.activo %}desactivar{% else %}activar{% endif %} a {{ c.nombre_completo }}?')">
+        <i class="bi {% if c.activo %}bi-person-x{% else %}bi-person-check{% endif %} fs-5"></i>
+      </a>
+    </td>
+    
+  </tr>
+  {% empty %}
+  <tr>
+    <td colspan="3" class="py-5">
+      <div class="text-center text-muted">
+        <i class="bi bi-people display-4 d-block mb-3 opacity-25"></i>
+        <h5 class="fw-semibold mb-2">No hay clientes registrados</h5>
+        <p class="mb-4 small">Comienza agregando tu primer cliente para gestionar tus ventas</p>
+        <a href="{% url 'cliente_nuevo' %}" class="btn btn-primary">
+          <i class="bi bi-person-plus-fill"></i> Agregar Cliente
+        </a>
+      </div>
+    </td>
+  </tr>
+  {% endfor %}
+</tbody>
+    </table>
+  </div>
+  
+  <!-- 📄 Paginación (si usas Django Paginator) -->
+  {% if clientes.paginator.num_pages > 1 %}
+  <div class="card-footer bg-transparent border-0 pt-3">
+    <nav aria-label="Paginación de clientes">
+      <ul class="pagination justify-content-center mb-0">
+        {% if clientes.has_previous %}
+          <li class="page-item">
+            <a class="page-link" href="?q={{ q }}&page=1" aria-label="Primera">
+              <i class="bi bi-chevron-double-left"></i>
+            </a>
+          </li>
+          <li class="page-item">
+            <a class="page-link" href="?q={{ q }}&page={{ clientes.previous_page_number }}">
+              <i class="bi bi-chevron-left"></i> Anterior
+            </a>
+          </li>
+        {% endif %}
+        
+        {% for num in clientes.paginator.page_range %}
+          {% if clientes.number == num %}
+            <li class="page-item active" aria-current="page">
+              <span class="page-link">{{ num }}</span>
+            </li>
+          {% elif num > clientes.number|add:'-3' and num < clientes.number|add:'3' %}
+            <li class="page-item">
+              <a class="page-link" href="?q={{ q }}&page={{ num }}">{{ num }}</a>
+            </li>
+          {% endif %}
+        {% endfor %}
+        
+        {% if clientes.has_next %}
+          <li class="page-item">
+            <a class="page-link" href="?q={{ q }}&page={{ clientes.next_page_number }}">
+              Siguiente <i class="bi bi-chevron-right"></i>
+            </a>
+          </li>
+          <li class="page-item">
+            <a class="page-link" href="?q={{ q }}&page={{ clientes.paginator.num_pages }}" aria-label="Última">
+              <i class="bi bi-chevron-double-right"></i>
+            </a>
+          </li>
+        {% endif %}
+      </ul>
+    </nav>
+  </div>
+  {% endif %}
+</div>
+
+<!-- 💡 Toast de ayuda contextual (opcional) -->
+{% if not clientes %}
+<div class="toast-container position-fixed bottom-0 end-0 p-3">
+  <div class="toast show" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="8000">
+    <div class="toast-header">
+      <i class="bi bi-lightbulb-fill text-warning me-2"></i>
+      <strong class="me-auto">Consejo</strong>
+      <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+    </div>
+    <div class="toast-body small">
+      Haz clic en el nombre de un cliente para editarlo. Usa el ícono 🗑️ para desactivarlo.
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Auto-focus en búsqueda si hay parámetro 'q'
+    const searchInput = document.querySelector('input[name="q"]');
+    if (searchInput && '{{ q }}') {
+      searchInput.focus();
+      searchInput.select();
+    }
+    
+    // Efecto hover en filas (solo visual, el clic lo maneja el onclick del tr)
+    document.querySelectorAll('tbody tr.cursor-pointer').forEach(row => {
+      row.addEventListener('mouseenter', function() {
+        this.style.backgroundColor = 'rgba(99, 102, 241, 0.06)';
+        this.style.transition = 'background-color 0.15s ease';
+      });
+      row.addEventListener('mouseleave', function() {
+        this.style.backgroundColor = '';
+      });
+    });
+    
+    // Evitar que los enlaces dentro de la fila propaguen el clic (ya hecho inline, pero por seguridad)
+    document.querySelectorAll('tbody tr a').forEach(link => {
+      link.addEventListener('click', function(e) {
+        e.stopPropagation();
+      });
+    });
+  });
+</script>
+
+<!-- ✨ CSS adicional para comportamiento clickeable -->
+<style>
+  /* Cursor de mano en filas clickeables */
+  .cursor-pointer { cursor: pointer; }
+  
+  /* Color suave al hover en el nombre */
+  .text-primary-hover:hover { color: var(--color-primary-dark) !important; }
+  
+  /* Hover visual en la fila completa */
+  .hover-row:hover {
+    background-color: rgba(99, 102, 241, 0.04) !important;
+    transition: background-color 0.15s ease;
+  }
+  
+  /* Botón de eliminar discreto */
+  .btn-link.text-danger {
+    text-decoration: none;
+    opacity: 0.7;
+    transition: opacity 0.2s ease;
+  }
+  .btn-link.text-danger:hover {
+    opacity: 1;
+    background: rgba(239, 68, 68, 0.1);
+    border-radius: 6px;
+  }
+  
+  /* En móvil: asegurar que el área táctil sea adecuada */
+  @media (max-width: 767px) {
+    .cursor-pointer { min-height: 56px; }
+    .btn-link.text-danger { padding: 8px !important; }
+  }
+</style>
+{% endblock %}

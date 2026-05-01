@@ -1,0 +1,685 @@
+{% extends 'ventas/base.html' %}
+{% block title %}Dashboard – Golosinas{% endblock %}
+
+{% block content %}
+<!-- 🔝 Header -->
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+  <div>
+    <h4 class="fw-bold mb-1 d-flex align-items-center gap-2">
+      <i class="bi bi-grid-1x2-fill text-gradient"></i> Dashboard
+    </h4>
+    <p class="text-muted small mb-0">Panel de control de ventas</p>
+  </div>
+  <div class="d-flex gap-2">
+    <button class="btn btn-primary-gradient btn-sm" onclick="window.location.reload()">
+      <i class="bi bi-arrow-repeat"></i> Actualizar
+    </button>
+  </div>
+</div>
+
+<!-- 📊 Tarjetas de estadísticas -->
+<div class="row g-3 mb-4">
+  <!-- Productos activos -->
+  <div class="col-6 col-sm-6 col-md-3">
+    <div class="stat-card-modern">
+      <div class="stat-icon bg-primary-soft">
+        <i class="bi bi-box-seam-fill text-primary"></i>
+      </div>
+      <div class="stat-content">
+        <div class="stat-label">Productos activos</div>
+        <div class="stat-value">{{ total_productos|default:"0" }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Clientes activos -->
+  <div class="col-6 col-sm-6 col-md-3">
+    <div class="stat-card-modern">
+      <div class="stat-icon bg-warning-soft">
+        <i class="bi bi-people-fill text-warning"></i>
+      </div>
+      <div class="stat-content">
+        <div class="stat-label">Clientes activos</div>
+        <div class="stat-value">{{ total_clientes|default:"0" }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Ventas hoy -->
+  <div class="col-6 col-sm-6 col-md-3">
+    <div class="stat-card-modern">
+      <div class="stat-icon bg-success-soft">
+        <i class="bi bi-cart-check-fill text-success"></i>
+      </div>
+      <div class="stat-content">
+        <div class="stat-label">Ventas hoy</div>
+        <div class="stat-value">{{ ventas_hoy|default:"0" }}</div>
+        <div class="stat-revenue">${{ ingresos_hoy|default:"0"|floatformat:2 }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Ventas este mes -->
+  <div class="col-6 col-sm-6 col-md-3">
+    <div class="stat-card-modern">
+      <div class="stat-icon bg-info-soft">
+        <i class="bi bi-graph-up-fill text-info"></i>
+      </div>
+      <div class="stat-content">
+        <div class="stat-label">Ventas este mes</div>
+        <div class="stat-value">{{ ventas_mes|default:"0" }}</div>
+        <div class="stat-revenue">${{ ingresos_mes|default:"0"|floatformat:2 }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 📈 Gráfico y niveles de stock -->
+<div class="row g-3 mb-4">
+  <div class="col-md-8">
+    <div class="card-modern graph-card">
+      <div class="card-header-custom">
+        <div>
+          <h6 class="fw-bold mb-1">📈 Ventas de los últimos 7 días</h6>
+          <p class="text-muted small mb-0">Evolución diaria</p>
+        </div>
+      </div>
+      <div class="chart-container">
+        <canvas id="ventasChart" height="250"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-4">
+    <div class="card-modern stock-card">
+      <div class="card-header-custom">
+        <h6 class="fw-bold mb-0">⚠️ Productos con Bajo Stock</h6>
+        <span class="badge-stock {% if productos_bajo_stock %}danger{% else %}success{% endif %}">
+          <i class="bi bi-exclamation-triangle-fill me-1"></i>
+          {{ productos_bajo_stock|length }} producto(s)
+        </span>
+      </div>
+      <div class="stock-list">
+        {% if productos_bajo_stock %}
+          {% for p in productos_bajo_stock %}
+          <div class="stock-item">
+            <div class="stock-info">
+              <div class="stock-name">{{ p.nombre }}</div>
+              <div class="stock-id">ID: {{ p.pk }}</div>
+            </div>
+            <div class="stock-badge-container">
+              <span class="stock-badge {% if p.stock <= 3 %}critical{% elif p.stock <= 5 %}low{% else %}warning{% endif %}">
+                {{ p.stock }} unidades
+              </span>
+            </div>
+          </div>
+          {% endfor %}
+        {% else %}
+          <div class="empty-stock">
+            <i class="bi bi-check-circle-fill text-success"></i>
+            <p class="mb-0">Todo el stock está bien</p>
+            <small class="text-muted">👍 Excelente gestión</small>
+          </div>
+        {% endif %}
+      </div>
+      <div class="card-footer-custom">
+        <a href="{% url 'producto_lista' %}" class="btn-link">
+          Ver todos los productos <i class="bi bi-arrow-right-short"></i>
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 📋 Últimas Ventas -->
+<div class="card-modern sales-card">
+  <div class="card-header-custom">
+    <div>
+      <h6 class="fw-bold mb-1">🕒 Últimas Ventas</h6>
+      <p class="text-muted small mb-0">Historial reciente de transacciones</p>
+    </div>
+    <a href="{% url 'venta_nueva' %}" class="btn btn-primary-gradient btn-sm">
+      <i class="bi bi-plus-lg"></i> Nueva Venta
+    </a>
+  </div>
+
+  <!-- Vista Desktop: Tabla -->
+  <div class="d-none d-md-block">
+    <div class="table-responsive">
+      <table class="table-modern-dashboard">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Cliente</th>
+            <th>Fecha</th>
+            <th>Estado Pago</th>
+            <th>Total</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for v in ultimas_ventas %}
+          <tr>
+            <td class="fw-semibold">#{{ v.pk }}</td>
+            <td>
+              <div class="client-info">
+                <i class="bi bi-person-circle"></i>
+                <span>{{ v.cliente.nombre_completo|default:v.cliente.nombre }}</span>
+              </div>
+            </td>
+            <td>
+              <div>{{ v.fecha|date:"d/m/Y" }}</div>
+              <small class="text-muted">{{ v.fecha|time:"H:i" }}</small>
+            </td>
+            <td>
+              {% if v.estado_pago == 'pagado' %}
+                <span class="badge-dashboard success"><i class="bi bi-check-circle-fill"></i> Pagado</span>
+              {% elif v.estado_pago == 'parcial' %}
+                <span class="badge-dashboard warning"><i class="bi bi-piggy-bank-fill"></i> Parcial</span>
+              {% else %}
+                <span class="badge-dashboard danger"><i class="bi bi-clock-fill"></i> Pendiente</span>
+              {% endif %}
+            </td>
+            <td class="fw-bold text-success">${{ v.total|floatformat:2 }}</td>
+            <td>
+              <a href="{% url 'venta_detalle' v.pk %}" class="btn-icon" title="Ver detalle">
+                <i class="bi bi-eye-fill"></i>
+              </a>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="6" class="text-center text-muted py-4">
+              <i class="bi bi-inbox display-4 d-block mb-2 opacity-25"></i>
+              No hay ventas registradas
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Vista Móvil: Tarjetas -->
+  <div class="d-md-none">
+    <div class="mobile-sales-list">
+      {% for v in ultimas_ventas %}
+      <div class="sale-card-mobile">
+        <div class="sale-header">
+          <div class="sale-id">Venta #{{ v.pk }}</div>
+          <div class="sale-status">
+            {% if v.estado_pago == 'pagado' %}
+              <span class="badge-dashboard success">Pagado</span>
+            {% elif v.estado_pago == 'parcial' %}
+              <span class="badge-dashboard warning">Parcial</span>
+            {% else %}
+              <span class="badge-dashboard danger">Pendiente</span>
+            {% endif %}
+          </div>
+        </div>
+        <div class="sale-body">
+          <div class="sale-info">
+            <i class="bi bi-person-fill"></i>
+            <span>{{ v.cliente.nombre_completo|default:v.cliente.nombre }}</span>
+          </div>
+          <div class="sale-info">
+            <i class="bi bi-calendar3"></i>
+            <span>{{ v.fecha|date:"d/m/Y H:i" }}</span>
+          </div>
+          <div class="sale-info highlighted">
+            <i class="bi bi-cash-stack"></i>
+            <span class="total">${{ v.total|floatformat:2 }}</span>
+          </div>
+        </div>
+        <div class="sale-footer">
+          <a href="{% url 'venta_detalle' v.pk %}" class="btn-mobile-action">
+            <i class="bi bi-eye-fill"></i> Ver detalle
+          </a>
+        </div>
+      </div>
+      {% empty %}
+      <div class="empty-state-mobile">
+        <i class="bi bi-inbox display-1 opacity-25"></i>
+        <p>No hay ventas registradas</p>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Datos para el gráfico
+    let fechasUltimos7Dias = {{ fechas_ultimos_7_dias|safe }};
+    let ventasUltimos7Dias = {{ ventas_ultimos_7_dias|safe }};
+    let ingresosUltimos7Dias = {{ ingresos_ultimos_7_dias|safe }};
+    
+    const ctx = document.getElementById('ventasChart');
+    if (ctx && fechasUltimos7Dias && fechasUltimos7Dias.length > 0) {
+      new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: fechasUltimos7Dias,
+          datasets: [
+            {
+              label: 'Ingresos ($)',
+              data: ingresosUltimos7Dias,
+              borderColor: '#4F46E5',
+              backgroundColor: 'rgba(79, 70, 229, 0.05)',
+              borderWidth: 2,
+              tension: 0.3,
+              fill: true,
+              pointBackgroundColor: '#4F46E5',
+              pointBorderColor: '#fff',
+              pointBorderWidth: 2,
+              pointRadius: 4,
+              pointHoverRadius: 6,
+              yAxisID: 'y'
+            },
+            {
+              label: 'Ventas',
+              data: ventasUltimos7Dias,
+              borderColor: '#10B981',
+              backgroundColor: 'rgba(16, 185, 129, 0.05)',
+              borderWidth: 2,
+              tension: 0.3,
+              fill: true,
+              pointBackgroundColor: '#10B981',
+              pointBorderColor: '#fff',
+              pointBorderWidth: 2,
+              pointRadius: 4,
+              pointHoverRadius: 6,
+              yAxisID: 'y1'
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          interaction: {
+            mode: 'index',
+            intersect: false,
+          },
+          plugins: {
+            legend: {
+              position: 'top',
+              labels: {
+                usePointStyle: true,
+                boxWidth: 10
+              }
+            },
+            tooltip: {
+              backgroundColor: 'rgba(0,0,0,0.8)',
+              padding: 10,
+              cornerRadius: 8,
+              callbacks: {
+                label: function(context) {
+                  let label = context.dataset.label || '';
+                  let value = context.parsed.y;
+                  if (label === 'Ingresos ($)') {
+                    return label + ': $' + value.toFixed(2);
+                  }
+                  return label + ': ' + value + ' venta(s)';
+                }
+              }
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              title: {
+                display: true,
+                text: 'Ingresos ($)',
+                color: '#4F46E5'
+              },
+              grid: {
+                color: 'rgba(0,0,0,0.05)'
+              }
+            },
+            y1: {
+              position: 'right',
+              beginAtZero: true,
+              title: {
+                display: true,
+                text: 'Cantidad de ventas',
+                color: '#10B981'
+              },
+              grid: {
+                drawOnChartArea: false
+              }
+            },
+            x: {
+              grid: {
+                display: false
+              }
+            }
+          }
+        }
+      });
+    }
+  });
+</script>
+
+<style>
+  /* ========== VARIABLES ========== */
+  :root {
+    --primary-start: #4F46E5;
+    --primary-end: #7C3AED;
+    --success: #10B981;
+    --warning: #F59E0B;
+    --danger: #EF4444;
+    --info: #06B6D4;
+    --border-light: #E5E7EB;
+    --bg-gray: #F9FAFB;
+  }
+
+  /* ========== TARJETAS DE ESTADÍSTICAS ========== */
+  .stat-card-modern {
+    background: white;
+    border-radius: 20px;
+    padding: 1rem;
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    transition: all 0.3s ease;
+    border: 1px solid var(--border-light);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  }
+
+  .stat-card-modern:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+  }
+
+  .stat-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+  }
+
+  .bg-primary-soft { background: rgba(79, 70, 229, 0.1); }
+  .bg-warning-soft { background: rgba(245, 158, 11, 0.1); }
+  .bg-success-soft { background: rgba(16, 185, 129, 0.1); }
+  .bg-info-soft { background: rgba(6, 182, 212, 0.1); }
+
+  .stat-content { flex: 1; }
+  .stat-label { font-size: 0.7rem; color: #6B7280; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px; }
+  .stat-value { font-size: 1.8rem; font-weight: 800; color: #1F2937; line-height: 1.2; }
+  .stat-revenue { font-size: 0.75rem; color: var(--success); font-weight: 600; margin-top: 4px; }
+
+  /* ========== TARJETAS MODERNAS ========== */
+  .card-modern {
+    background: white;
+    border-radius: 20px;
+    border: 1px solid var(--border-light);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    overflow: hidden;
+  }
+
+  .card-header-custom {
+    padding: 1.25rem;
+    border-bottom: 1px solid var(--border-light);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    background: white;
+  }
+
+  .card-footer-custom {
+    padding: 1rem 1.25rem;
+    border-top: 1px solid var(--border-light);
+    background: var(--bg-gray);
+  }
+
+  .chart-container { padding: 1rem; }
+
+  /* ========== STOCK CARD ========== */
+  .badge-stock {
+    padding: 0.25rem 0.75rem;
+    border-radius: 30px;
+    font-size: 0.7rem;
+    font-weight: 600;
+  }
+  
+  .badge-stock.danger { background: #FEE2E2; color: var(--danger); }
+  .badge-stock.success { background: #D1FAE5; color: var(--success); }
+
+  .stock-list {
+    max-height: 280px;
+    overflow-y: auto;
+  }
+
+  .stock-item {
+    padding: 0.875rem 1.25rem;
+    border-bottom: 1px solid var(--border-light);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: background 0.2s;
+  }
+
+  .stock-item:hover { background: var(--bg-gray); }
+
+  .stock-name { font-weight: 600; font-size: 0.9rem; color: #1F2937; }
+  .stock-id { font-size: 0.7rem; color: #9CA3AF; margin-top: 2px; }
+
+  .stock-badge {
+    padding: 0.25rem 0.7rem;
+    border-radius: 30px;
+    font-size: 0.7rem;
+    font-weight: 600;
+  }
+
+  .stock-badge.critical { background: #FEE2E2; color: #991B1B; }
+  .stock-badge.low { background: #FEF3C7; color: #92400E; }
+  .stock-badge.warning { background: #FFEDD5; color: #9A3412; }
+
+  .empty-stock {
+    text-align: center;
+    padding: 2rem 1rem;
+  }
+
+  .empty-stock i { font-size: 2rem; margin-bottom: 0.5rem; }
+
+  /* ========== TABLA DASHBOARD ========== */
+  .table-modern-dashboard {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .table-modern-dashboard thead th {
+    padding: 0.875rem 1.25rem;
+    background: var(--bg-gray);
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #6B7280;
+    border-bottom: 2px solid var(--border-light);
+  }
+
+  .table-modern-dashboard tbody td {
+    padding: 0.875rem 1.25rem;
+    border-bottom: 1px solid var(--border-light);
+    vertical-align: middle;
+  }
+
+  .table-modern-dashboard tbody tr:hover { background: var(--bg-gray); }
+
+  .client-info { display: flex; align-items: center; gap: 0.5rem; }
+  .client-info i { color: #9CA3AF; }
+
+  .badge-dashboard {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 30px;
+    font-size: 0.7rem;
+    font-weight: 600;
+  }
+
+  .badge-dashboard.success { background: #D1FAE5; color: #065F46; }
+  .badge-dashboard.warning { background: #FEF3C7; color: #92400E; }
+  .badge-dashboard.danger { background: #FEE2E2; color: #991B1B; }
+
+  .btn-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #EEF2FF;
+    color: var(--primary-start);
+    transition: all 0.2s;
+  }
+
+  .btn-icon:hover {
+    background: var(--primary-start);
+    color: white;
+    transform: translateY(-2px);
+  }
+
+  .btn-link {
+    color: var(--primary-start);
+    text-decoration: none;
+    font-size: 0.85rem;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+  }
+
+  .btn-link:hover { gap: 0.5rem; color: var(--primary-dark); }
+
+  /* ========== VISTA MÓVIL ========== */
+  .mobile-sales-list { padding: 0.5rem; }
+  
+  .sale-card-mobile {
+    background: white;
+    border-radius: 16px;
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+    border: 1px solid var(--border-light);
+    transition: all 0.2s;
+  }
+
+  .sale-card-mobile:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+
+  .sale-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border-light);
+  }
+
+  .sale-id {
+    font-weight: 700;
+    font-size: 0.85rem;
+    color: var(--primary-start);
+  }
+
+  .sale-body { margin-bottom: 0.75rem; }
+
+  .sale-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    padding: 0.3rem 0;
+    color: #4B5563;
+  }
+
+  .sale-info i { width: 20px; color: #9CA3AF; }
+  .sale-info.highlighted { margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px dashed var(--border-light); }
+  .sale-info.highlighted i { color: var(--success); }
+  .sale-info .total { font-weight: 700; font-size: 1.1rem; color: var(--success); }
+
+  .btn-mobile-action {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.6rem;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--primary-start), var(--primary-end));
+    color: white;
+    text-decoration: none;
+    font-size: 0.8rem;
+    font-weight: 500;
+    transition: all 0.2s;
+  }
+
+  .btn-mobile-action:hover { transform: translateY(-2px); color: white; }
+
+  .empty-state-mobile {
+    text-align: center;
+    padding: 2rem;
+    color: #9CA3AF;
+  }
+
+  .empty-state-mobile i { margin-bottom: 0.5rem; }
+
+  /* ========== UTILIDADES ========== */
+  .text-gradient {
+    background: linear-gradient(135deg, var(--primary-start), var(--primary-end));
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+  }
+
+  .btn-primary-gradient {
+    background: linear-gradient(135deg, var(--primary-start), var(--primary-end));
+    border: none;
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 10px;
+    font-weight: 500;
+    transition: all 0.2s;
+  }
+
+  .btn-primary-gradient:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+    color: white;
+  }
+
+  /* ========== RESPONSIVE ========== */
+  @media (max-width: 768px) {
+    .stat-card-modern { padding: 0.875rem; }
+    .stat-value { font-size: 1.4rem; }
+    .stat-icon { width: 40px; height: 40px; font-size: 1.2rem; border-radius: 12px; }
+    .card-header-custom { padding: 0.875rem; flex-direction: column; align-items: stretch; }
+    .stock-item { padding: 0.75rem; }
+  }
+
+  @media (max-width: 480px) {
+    .stat-value { font-size: 1.2rem; }
+    .stat-label { font-size: 0.65rem; }
+    .stat-revenue { font-size: 0.65rem; }
+  }
+
+  .stock-list::-webkit-scrollbar {
+    width: 4px;
+  }
+  .stock-list::-webkit-scrollbar-track {
+    background: #f1f1f1;
+  }
+  .stock-list::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+  }
+</style>
+{% endblock %}

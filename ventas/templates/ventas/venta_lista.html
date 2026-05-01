@@ -1,0 +1,397 @@
+{% extends 'ventas/base.html' %}
+{% block title %}Ventas{% endblock %}
+
+{% block content %}
+<!-- 🔝 Header con acciones -->
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+  <h4 class="fw-bold mb-0 d-flex align-items-center gap-2">
+    <i class="bi bi-receipt-cutoff text-gradient"></i> Ventas
+  </h4>
+  <a href="{% url 'venta_nueva' %}" class="btn btn-primary-gradient">
+    <i class="bi bi-plus-lg"></i> Nueva Venta
+  </a>
+</div>
+
+<!-- 🔍 Filtros por estado de pago -->
+<div class="d-flex flex-wrap align-items-center gap-2 mb-4 p-3 glass-card animate-fade">
+  <span class="text-muted small fw-semibold me-1">Filtrar por pago:</span>
+  <a href="?" class="filter-badge {% if not request.GET.pago %}active{% endif %}">
+    <i class="bi bi-list-ul me-1"></i>Todas
+  </a>
+  <a href="?pago=pendiente" class="filter-badge pending {% if request.GET.pago == 'pendiente' %}active{% endif %}">
+    <i class="bi bi-clock-fill me-1"></i>Pendiente
+  </a>
+  <a href="?pago=parcial" class="filter-badge partial {% if request.GET.pago == 'parcial' %}active{% endif %}">
+    <i class="bi bi-piggy-bank-fill me-1"></i>Parcial
+  </a>
+  <a href="?pago=pagado" class="filter-badge paid {% if request.GET.pago == 'pagado' %}active{% endif %}">
+    <i class="bi bi-check-circle-fill me-1"></i>Pagado
+  </a>
+</div>
+
+<!-- 📋 Tabla de ventas -->
+<div class="card border-0 glass-card animate-fade p-0 overflow-hidden">
+  <div class="table-responsive">
+    <table class="table table-modern align-middle mb-0">
+      <thead>
+        <tr>
+          <th scope="col" class="ps-4">ID</th>
+          <th scope="col">Cliente</th>
+          <th scope="col" class="d-none d-md-table-cell">Fecha</th>
+          <th scope="col">Pago</th>
+          <th scope="col">Total</th>
+          <th scope="col" class="d-none d-lg-table-cell">Registró</th>
+          <th scope="col" class="text-end pe-4">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for v in ventas %}
+        <tr class="hover-row">
+          <td class="ps-4 fw-semibold text-primary-dark">{{ v.pk }}</td>
+          
+          <td>
+            <div class="fw-semibold">{{ v.cliente.nombre_completo }}</div>
+            <small class="text-muted d-md-none">{{ v.fecha|date:"d/m/Y" }}</small>
+          </td>
+          
+          <td class="d-none d-md-table-cell">
+            <div class="fw-medium">{{ v.fecha|date:"d/m/Y" }}</div>
+            <small class="text-muted">{{ v.fecha|time:"H:i" }}</small>
+          </td>
+          
+          <!-- 💳 Estado de pago -->
+          <td>
+            {% if v.estado_pago == 'pendiente' %}
+              <span class="status-badge pending"><i class="bi bi-clock-fill me-1"></i>Pendiente</span>
+            {% elif v.estado_pago == 'parcial' %}
+              <span class="status-badge partial"><i class="bi bi-piggy-bank-fill me-1"></i>Parcial</span>
+            {% else %}
+              <span class="status-badge paid"><i class="bi bi-check-circle-fill me-1"></i>Pagado</span>
+            {% endif %}
+          </td>
+          
+          <td class="fw-bold text-amount">${{ v.total|floatformat:2 }}</td>
+          <td class="d-none d-lg-table-cell text-muted small">{{ v.usuario.username }}</td>
+          
+          <td class="text-end pe-4 action-cell">
+            <a href="{% url 'venta_detalle' v.pk %}" class="btn-action">
+              <i class="bi bi-eye-fill"></i>
+              <span>Detalle</span>
+            </a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="7" class="py-5">
+            <div class="text-center text-muted py-4">
+              <div class="empty-state-icon mb-3">
+                <i class="bi bi-receipt-cutoff"></i>
+              </div>
+              <h5 class="fw-semibold mb-2">No hay ventas registradas</h5>
+              <p class="mb-4 small">Comienza creando tu primera venta</p>
+              <a href="{% url 'venta_nueva' %}" class="btn btn-primary-gradient">
+                <i class="bi bi-plus-lg"></i> Nueva Venta
+              </a>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Efecto hover en filas (mejorado con clase CSS)
+    const rows = document.querySelectorAll('tbody tr.hover-row');
+    rows.forEach(row => {
+      row.addEventListener('mouseenter', () => row.classList.add('row-hover'));
+      row.addEventListener('mouseleave', () => row.classList.remove('row-hover'));
+    });
+  });
+</script>
+
+<style>
+  /* ========== COLORES MODERNOS ========== */
+  :root {
+    --primary-start: #4F46E5;  /* Indigo 600 */
+    --primary-end: #7C3AED;    /* Violet 600 */
+    --primary-dark: #4338CA;    /* Indigo 700 */
+    --success: #10B981;         /* Emerald 500 */
+    --warning: #F59E0B;         /* Amber 500 */
+    --info: #06B6D4;            /* Cyan 500 */
+    --gray-bg: #F9FAFB;
+    --border-light: #E5E7EB;
+  }
+
+  /* Gradiente moderno */
+  .text-gradient {
+    background: linear-gradient(135deg, var(--primary-start), var(--primary-end));
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+  }
+
+  .btn-primary-gradient {
+    background: linear-gradient(135deg, var(--primary-start), var(--primary-end));
+    border: none;
+    color: white;
+    padding: 0.6rem 1.2rem;
+    border-radius: 12px;
+    font-weight: 500;
+    transition: all 0.25s ease;
+    box-shadow: 0 2px 4px rgba(79, 70, 229, 0.2);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .btn-primary-gradient:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(79, 70, 229, 0.3);
+    color: white;
+    background: linear-gradient(135deg, var(--primary-dark), var(--primary-end));
+  }
+
+  /* Glassmorphism sutil */
+  .glass-card {
+    background: rgba(255, 255, 255, 0.96);
+    backdrop-filter: blur(0px);
+    border-radius: 20px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+  }
+
+  /* Filtros modernos */
+  .filter-badge {
+    text-decoration: none;
+    padding: 0.5rem 1.2rem;
+    border-radius: 40px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    background: #F3F4F6;
+    color: #4B5563;
+    border: 1px solid transparent;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  .filter-badge i { font-size: 0.9rem; }
+
+  .filter-badge.active {
+    background: linear-gradient(135deg, var(--primary-start), var(--primary-end));
+    color: white;
+    box-shadow: 0 4px 8px rgba(79, 70, 229, 0.25);
+    border-color: transparent;
+  }
+
+  .filter-badge.pending.active { background: var(--warning); color: white; }
+  .filter-badge.partial.active { background: var(--info); color: white; }
+  .filter-badge.paid.active { background: var(--success); color: white; }
+
+  .filter-badge:hover:not(.active) {
+    background: #E5E7EB;
+    transform: translateY(-1px);
+  }
+
+  /* Tabla moderna */
+  .table-modern {
+    --bs-table-hover-bg: transparent;
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+
+  .table-modern thead th {
+    background: #F8FAFC;
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: #4B5563;
+    padding: 1rem 0.75rem;
+    border-bottom: 2px solid var(--border-light);
+  }
+
+  .table-modern tbody td {
+    padding: 1rem 0.75rem;
+    border-bottom: 1px solid #F0F2F5;
+    vertical-align: middle;
+  }
+
+  .row-hover {
+    background-color: #F9FAFF;
+    transition: background-color 0.2s ease;
+  }
+
+  .text-primary-dark { color: var(--primary-dark); font-weight: 600; }
+  .text-amount { color: #065F46; font-weight: 700; letter-spacing: -0.01em; }
+
+  /* Status badges */
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.35rem 0.9rem;
+    border-radius: 40px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    background: #F3F4F6;
+    color: #4B5563;
+    white-space: nowrap;
+  }
+
+  .status-badge.pending { background: #FEF3C7; color: #B45309; }
+  .status-badge.partial { background: #E0F2FE; color: #0369A1; }
+  .status-badge.paid { background: #D1FAE5; color: #065F46; }
+
+  /* Botón acción - Versión mejorada para móvil */
+  .btn-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: transparent;
+    color: var(--primary-start);
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    border: 1px solid #E0E7FF;
+    white-space: nowrap;
+  }
+
+  .btn-action i {
+    font-size: 0.9rem;
+  }
+
+  .btn-action:hover {
+    background: #EEF2FF;
+    border-color: var(--primary-start);
+    transform: translateY(-1px);
+  }
+
+  /* Estado vacío */
+  .empty-state-icon {
+    font-size: 3.5rem;
+    color: #D1D5DB;
+    opacity: 0.5;
+  }
+
+  /* Animación fade */
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .animate-fade {
+    animation: fadeIn 0.25s ease-out;
+  }
+
+  /* ========== RESPONSIVE MEJORADO ========== */
+  @media (max-width: 768px) {
+    /* Filtros más compactos */
+    .filter-badge { 
+      padding: 0.4rem 1rem; 
+      font-size: 0.75rem;
+    }
+    
+    /* Celda de acciones */
+    .action-cell {
+      padding: 0.75rem 0.5rem !important;
+    }
+    
+    /* Botón acción en móvil - Ocupa todo el ancho disponible */
+    .btn-action {
+      width: 70%;
+      justify-content: center;
+      padding: 0.6rem 0.5rem;
+      font-size: 0.8rem;
+      white-space: normal;
+      word-break: keep-all;
+    }
+    
+    /* Ajuste de padding en celdas */
+    .table-modern tbody td {
+      padding: 0.75rem 0.5rem;
+    }
+    
+    /* Texto más pequeño en móvil */
+    .status-badge {
+      padding: 0.25rem 0.7rem;
+      font-size: 0.7rem;
+    }
+    
+    /* Ajuste del ID */
+    .ps-4 {
+      padding-left: 0.75rem !important;
+    }
+    
+    /* Header más compacto */
+    .btn-primary-gradient {
+      padding: 0.5rem 1rem;
+      font-size: 0.9rem;
+    }
+  }
+  
+  /* Para móviles muy pequeños (menos de 480px) */
+  @media (max-width: 480px) {
+    .filter-badge { 
+      padding: 0.35rem 0.8rem; 
+      font-size: 0.7rem;
+    }
+    
+    .btn-action {
+      padding: 0.5rem 0.3rem;
+      font-size: 0.75rem;
+    }
+    
+    .btn-action i {
+      font-size: 0.8rem;
+    }
+    
+    .status-badge {
+      padding: 0.2rem 0.5rem;
+      font-size: 0.65rem;
+    }
+    
+    .text-amount {
+      font-size: 0.85rem;
+    }
+  }
+  
+  /* Ajuste para tabletas */
+  @media (min-width: 769px) and (max-width: 1024px) {
+    .btn-action {
+      padding: 0.4rem 0.8rem;
+      font-size: 0.8rem;
+    }
+  }
+
+  /* Scrollbar elegante */
+  .table-responsive::-webkit-scrollbar {
+    height: 6px;
+  }
+  .table-responsive::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+  }
+  .table-responsive::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+  }
+  
+  /* Evitar que el texto se desborde en móvil */
+  .table-modern td {
+    max-width: 200px;
+    overflow-wrap: break-word;
+  }
+</style>
+{% endblock %}
