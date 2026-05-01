@@ -1,296 +1,440 @@
+
 {% extends 'ventas/base.html' %}
 {% block title %}Dashboard – Golosinas{% endblock %}
 
 {% block content %}
-<!-- 🔝 Header -->
-<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
-  <div>
-    <h4 class="fw-bold mb-1 d-flex align-items-center gap-2">
-      <i class="bi bi-grid-1x2-fill text-gradient"></i> Dashboard
-    </h4>
-    <p class="text-muted small mb-0">Panel de control de ventas</p>
-  </div>
-  <div class="d-flex gap-2">
-    <button class="btn btn-primary-gradient btn-sm" onclick="window.location.reload()">
-      <i class="bi bi-arrow-repeat"></i> Actualizar
+
+<!-- Header Moderno -->
+<div class="dashboard-header mb-5">
+  <div class="header-content">
+    <div class="title-section">
+      <div class="icon-wrapper">
+        <i class="bi bi-grid-1x2-fill"></i>
+      </div>
+      <div>
+        <h1 class="dashboard-title">Dashboard</h1>
+        <p class="dashboard-subtitle">Panel de control de ventas y estadísticas</p>
+      </div>
+    </div>
+    <button class="btn-refresh" onclick="window.location.reload()">
+      <i class="bi bi-arrow-repeat"></i>
+      <span>Actualizar</span>
     </button>
   </div>
 </div>
 
-<!-- 📊 Tarjetas de estadísticas -->
-<div class="row g-3 mb-4">
+<!-- Tarjetas KPI Modernas -->
+<div class="kpi-grid">
   <!-- Productos activos -->
-  <div class="col-6 col-sm-6 col-md-3">
-    <div class="stat-card-modern">
-      <div class="stat-icon bg-primary-soft">
-        <i class="bi bi-box-seam-fill text-primary"></i>
-      </div>
-      <div class="stat-content">
-        <div class="stat-label">Productos activos</div>
-        <div class="stat-value">{{ total_productos|default:"0" }}</div>
-      </div>
+  <div class="kpi-card">
+    <div class="kpi-icon blue">
+      <i class="bi bi-box-seam-fill"></i>
+    </div>
+    <div class="kpi-info">
+      <span class="kpi-label">Productos activos</span>
+      <span class="kpi-value">{{ total_productos|default:"0" }}</span>
     </div>
   </div>
 
   <!-- Clientes activos -->
-  <div class="col-6 col-sm-6 col-md-3">
-    <div class="stat-card-modern">
-      <div class="stat-icon bg-warning-soft">
-        <i class="bi bi-people-fill text-warning"></i>
-      </div>
-      <div class="stat-content">
-        <div class="stat-label">Clientes activos</div>
-        <div class="stat-value">{{ total_clientes|default:"0" }}</div>
-      </div>
+  <div class="kpi-card">
+    <div class="kpi-icon orange">
+      <i class="bi bi-people-fill"></i>
+    </div>
+    <div class="kpi-info">
+      <span class="kpi-label">Clientes activos</span>
+      <span class="kpi-value">{{ total_clientes|default:"0" }}</span>
     </div>
   </div>
 
   <!-- Ventas hoy -->
-  <div class="col-6 col-sm-6 col-md-3">
-    <div class="stat-card-modern">
-      <div class="stat-icon bg-success-soft">
-        <i class="bi bi-cart-check-fill text-success"></i>
-      </div>
-      <div class="stat-content">
-        <div class="stat-label">Ventas hoy</div>
-        <div class="stat-value">{{ ventas_hoy|default:"0" }}</div>
-        <div class="stat-revenue">${{ ingresos_hoy|default:"0"|floatformat:2 }}</div>
-      </div>
+  <div class="kpi-card">
+    <div class="kpi-icon green">
+      <i class="bi bi-cart-check-fill"></i>
+    </div>
+    <div class="kpi-info">
+      <span class="kpi-label">Ventas hoy</span>
+      <span class="kpi-value">{{ ventas_hoy|default:"0" }}</span>
+      <span class="kpi-sub">${{ ingresos_hoy|default:"0"|floatformat:2 }}</span>
     </div>
   </div>
 
   <!-- Ventas este mes -->
-  <div class="col-6 col-sm-6 col-md-3">
-    <div class="stat-card-modern">
-      <div class="stat-icon bg-info-soft">
-        <i class="bi bi-graph-up-fill text-info"></i>
-      </div>
-      <div class="stat-content">
-        <div class="stat-label">Ventas este mes</div>
-        <div class="stat-value">{{ ventas_mes|default:"0" }}</div>
-        <div class="stat-revenue">${{ ingresos_mes|default:"0"|floatformat:2 }}</div>
-      </div>
+  <div class="kpi-card">
+    <div class="kpi-icon purple">
+      <i class="bi bi-graph-up-fill"></i>
+    </div>
+    <div class="kpi-info">
+      <span class="kpi-label">Ventas este mes</span>
+      <span class="kpi-value">{{ ventas_mes|default:"0" }}</span>
+      <span class="kpi-sub">${{ ingresos_mes|default:"0"|floatformat:2 }}</span>
     </div>
   </div>
 </div>
 
-<!-- 📈 Gráfico y niveles de stock -->
-<div class="row g-3 mb-4">
-  <div class="col-md-8">
-    <div class="card-modern graph-card">
-      <div class="card-header-custom">
-        <div>
-          <h6 class="fw-bold mb-1">📈 Ventas de los últimos 7 días</h6>
-          <p class="text-muted small mb-0">Evolución diaria</p>
-        </div>
+<!-- Sección Gráfico y Stock -->
+<div class="dashboard-grid">
+  <!-- Gráfico de Ventas -->
+  <div class="chart-card">
+    <div class="card-header">
+      <div>
+        <h3 class="card-title">Tendencia de Ventas</h3>
+        <p class="card-subtitle">Últimos 7 días</p>
       </div>
-      <div class="chart-container">
-        <canvas id="ventasChart" height="250"></canvas>
-      </div>
-    </div>
-  </div>
-
-  <div class="col-md-4">
-    <div class="card-modern stock-card">
-      <div class="card-header-custom">
-        <h6 class="fw-bold mb-0">⚠️ Productos con Bajo Stock</h6>
-        <span class="badge-stock {% if productos_bajo_stock %}danger{% else %}success{% endif %}">
-          <i class="bi bi-exclamation-triangle-fill me-1"></i>
-          {{ productos_bajo_stock|length }} producto(s)
+      <div class="chart-legend">
+        <span class="legend-item">
+          <span class="legend-dot revenue"></span> Ingresos
+        </span>
+        <span class="legend-item">
+          <span class="legend-dot sales"></span> Ventas
         </span>
       </div>
-      <div class="stock-list">
-        {% if productos_bajo_stock %}
-          {% for p in productos_bajo_stock %}
-          <div class="stock-item">
-            <div class="stock-info">
-              <div class="stock-name">{{ p.nombre }}</div>
-              <div class="stock-id">ID: {{ p.pk }}</div>
-            </div>
-            <div class="stock-badge-container">
-              <span class="stock-badge {% if p.stock <= 3 %}critical{% elif p.stock <= 5 %}low{% else %}warning{% endif %}">
-                {{ p.stock }} unidades
-              </span>
-            </div>
-          </div>
-          {% endfor %}
-        {% else %}
-          <div class="empty-stock">
-            <i class="bi bi-check-circle-fill text-success"></i>
-            <p class="mb-0">Todo el stock está bien</p>
-            <small class="text-muted">👍 Excelente gestión</small>
-          </div>
-        {% endif %}
+    </div>
+    <div class="chart-container">
+      <canvas id="ventasChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Productos con Bajo Stock -->
+  <div class="stock-card">
+    <div class="card-header">
+      <div>
+        <h3 class="card-title">Alertas de Inventario</h3>
+        <p class="card-subtitle">Productos con bajo stock</p>
       </div>
-      <div class="card-footer-custom">
-        <a href="{% url 'producto_lista' %}" class="btn-link">
-          Ver todos los productos <i class="bi bi-arrow-right-short"></i>
-        </a>
-      </div>
+      <span class="stock-badge {% if productos_bajo_stock %}danger{% else %}success{% endif %}">
+        <i class="bi bi-exclamation-triangle-fill me-1"></i>
+        {{ productos_bajo_stock|length }} producto(s)
+      </span>
+    </div>
+    <div class="stock-list">
+      {% if productos_bajo_stock %}
+        {% for p in productos_bajo_stock %}
+        <div class="stock-item">
+          <div class="product-info">
+            <div class="product-name">{{ p.nombre }}</div>
+            <div class="product-id">ID: {{ p.pk }}</div>
+          </div>
+          <div class="stock-status">
+            <span class="stock-count 
+              {% if p.stock <= 3 %}critical
+              {% elif p.stock <= 5 %}low
+              {% else %}warning{% endif %}">
+              {{ p.stock }}
+            </span>
+            <span class="stock-unit">unidades</span>
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="empty-stock">
+          <div class="empty-icon">
+            <i class="bi bi-check-circle-fill"></i>
+          </div>
+          <p>Todo el stock está bien</p>
+          <small>Excelente gestión</small>
+        </div>
+      {% endif %}
+    </div>
+    <div class="card-footer">
+      <a href="{% url 'producto_lista' %}" class="link-action">
+        Ver todos los productos <i class="bi bi-arrow-right"></i>
+      </a>
     </div>
   </div>
 </div>
 
-<!-- 📋 Últimas Ventas -->
-<div class="card-modern sales-card">
-  <div class="card-header-custom">
+<!-- Últimas Ventas - CON BUSCADOR Y PAGINACIÓN -->
+<div class="sales-section">
+  <div class="sales-header">
     <div>
-      <h6 class="fw-bold mb-1">🕒 Últimas Ventas</h6>
-      <p class="text-muted small mb-0">Historial reciente de transacciones</p>
+      <h3 class="card-title">Últimas Transacciones</h3>
+      <p class="card-subtitle">Historial reciente de ventas</p>
     </div>
-    <a href="{% url 'venta_nueva' %}" class="btn btn-primary-gradient btn-sm">
-      <i class="bi bi-plus-lg"></i> Nueva Venta
+    <a href="{% url 'venta_nueva' %}" class="btn-new-sale">
+      <i class="bi bi-plus-lg"></i>
+      <span>Nueva Venta</span>
     </a>
   </div>
 
-  <!-- Vista Desktop: Tabla -->
-  <div class="d-none d-md-block">
-    <div class="table-responsive">
-      <table class="table-modern-dashboard">
+  <!-- 🔍 Barra de Búsqueda y Filtros -->
+  <div class="search-bar p-3 border-bottom bg-light">
+    <form method="GET" id="searchForm" class="d-flex flex-wrap gap-2 align-items-center">
+      <!-- Campo de búsqueda -->
+      <div class="search-input-group flex-grow-1">
+        <i class="bi bi-search text-muted"></i>
+        <input 
+          type="text" 
+          name="q" 
+          id="searchInput"
+          class="form-control border-0 bg-transparent" 
+          placeholder="Buscar por ID, cliente, teléfono o notas..." 
+          value="{{ query }}"
+          autocomplete="off"
+        >
+        {% if query %}
+          <a href="{% url 'dashboard' %}" class="btn btn-sm btn-link text-danger p-0" title="Limpiar búsqueda">
+            <i class="bi bi-x-circle-fill"></i>
+          </a>
+        {% endif %}
+      </div>
+      
+      <!-- Filtro por estado de pago -->
+      <select name="estado" id="estadoFilter" class="form-select form-select-sm" style="max-width: 180px;">
+        <option value="">Todos los estados</option>
+        <option value="pendiente" {% if estado_filter == 'pendiente' %}selected{% endif %}>⏳ Pendiente</option>
+        <option value="parcial" {% if estado_filter == 'parcial' %}selected{% endif %}>💰 Parcial</option>
+        <option value="pagado" {% if estado_filter == 'pagado' %}selected{% endif %}>✅ Pagado</option>
+      </select>
+      
+      <button type="submit" class="btn btn-primary btn-sm px-3">
+        <i class="bi bi-funnel"></i> Filtrar
+      </button>
+    </form>
+  </div>
+
+  <!-- Vista Desktop: Tabla con Paginación -->
+  <div class="d-none d-lg-block">
+    <div class="sales-table">
+      <table>
         <thead>
           <tr>
-            <th>ID</th>
+            <th>
+              <a href="?q={{ query }}&estado={{ estado_filter }}&order=id" class="text-decoration-none text-reset">
+                ID Venta {% if request.GET.order == 'id' %}🔽{% endif %}
+              </a>
+            </th>
             <th>Cliente</th>
             <th>Fecha</th>
-            <th>Estado Pago</th>
+            <th>Estado</th>
             <th>Total</th>
-            <th>Acciones</th>
+            <th></th>
           </tr>
         </thead>
         <tbody>
           {% for v in ultimas_ventas %}
           <tr>
-            <td class="fw-semibold">#{{ v.pk }}</td>
+            <td class="sale-id">{{ v.pk }}</td>
             <td>
-              <div class="client-info">
+              <div class="client-cell">
                 <i class="bi bi-person-circle"></i>
                 <span>{{ v.cliente.nombre_completo|default:v.cliente.nombre }}</span>
               </div>
             </td>
             <td>
-              <div>{{ v.fecha|date:"d/m/Y" }}</div>
-              <small class="text-muted">{{ v.fecha|time:"H:i" }}</small>
+              <div class="date-cell">
+                <span>{{ v.fecha|date:"d/m/Y" }}</span>
+                <small>{{ v.fecha|time:"H:i" }}</small>
+              </div>
             </td>
             <td>
               {% if v.estado_pago == 'pagado' %}
-                <span class="badge-dashboard success"><i class="bi bi-check-circle-fill"></i> Pagado</span>
+                <span class="status-badge paid"><i class="bi bi-check-circle-fill"></i> Pagado</span>
               {% elif v.estado_pago == 'parcial' %}
-                <span class="badge-dashboard warning"><i class="bi bi-piggy-bank-fill"></i> Parcial</span>
+                <span class="status-badge partial"><i class="bi bi-piggy-bank-fill"></i> Parcial</span>
               {% else %}
-                <span class="badge-dashboard danger"><i class="bi bi-clock-fill"></i> Pendiente</span>
+                <span class="status-badge pending"><i class="bi bi-clock-fill"></i> Pendiente</span>
               {% endif %}
             </td>
-            <td class="fw-bold text-success">${{ v.total|floatformat:2 }}</td>
+            <td class="sale-total">${{ v.total|floatformat:2 }}</td>
             <td>
-              <a href="{% url 'venta_detalle' v.pk %}" class="btn-icon" title="Ver detalle">
+              <a href="{% url 'venta_detalle' v.pk %}" class="action-btn" title="Ver detalle">
                 <i class="bi bi-eye-fill"></i>
               </a>
             </td>
           </tr>
           {% empty %}
           <tr>
-            <td colspan="6" class="text-center text-muted py-4">
-              <i class="bi bi-inbox display-4 d-block mb-2 opacity-25"></i>
-              No hay ventas registradas
+            <td colspan="6" class="empty-table">
+              <i class="bi bi-inbox"></i>
+              <p>No se encontraron ventas con los filtros aplicados</p>
+              {% if query or estado_filter %}
+                <a href="{% url 'dashboard' %}" class="btn btn-sm btn-outline-primary mt-2">
+                  <i class="bi bi-x-circle"></i> Limpiar filtros
+                </a>
+              {% endif %}
             </td>
           </tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
+
+    <!-- 📄 Paginación Desktop -->
+    {% if paginator.num_pages > 1 %}
+    <div class="pagination-wrapper p-3 border-top">
+      <nav aria-label="Paginación de ventas">
+        <ul class="pagination pagination-modern justify-content-center mb-0">
+          {% if ultimas_ventas.has_previous %}
+            <li class="page-item">
+              <a class="page-link" href="?page=1&q={{ query }}&estado={{ estado_filter }}">
+                <i class="bi bi-chevron-double-left"></i>
+              </a>
+            </li>
+            <li class="page-item">
+              <a class="page-link" href="?page={{ ultimas_ventas.previous_page_number }}&q={{ query }}&estado={{ estado_filter }}">
+                <i class="bi bi-chevron-left"></i>
+              </a>
+            </li>
+          {% else %}
+            <li class="page-item disabled"><span class="page-link"><i class="bi bi-chevron-double-left"></i></span></li>
+            <li class="page-item disabled"><span class="page-link"><i class="bi bi-chevron-left"></i></span></li>
+          {% endif %}
+
+          {% for num in ultimas_ventas.paginator.page_range %}
+            {% if ultimas_ventas.number == num %}
+              <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+            {% elif num > ultimas_ventas.number|add:'-3' and num < ultimas_ventas.number|add:'3' %}
+              <li class="page-item">
+                <a class="page-link" href="?page={{ num }}&q={{ query }}&estado={{ estado_filter }}">{{ num }}</a>
+              </li>
+            {% endif %}
+          {% endfor %}
+
+          {% if ultimas_ventas.has_next %}
+            <li class="page-item">
+              <a class="page-link" href="?page={{ ultimas_ventas.next_page_number }}&q={{ query }}&estado={{ estado_filter }}">
+                <i class="bi bi-chevron-right"></i>
+              </a>
+            </li>
+            <li class="page-item">
+              <a class="page-link" href="?page={{ ultimas_ventas.paginator.num_pages }}&q={{ query }}&estado={{ estado_filter }}">
+                <i class="bi bi-chevron-double-right"></i>
+              </a>
+            </li>
+          {% else %}
+            <li class="page-item disabled"><span class="page-link"><i class="bi bi-chevron-right"></i></span></li>
+            <li class="page-item disabled"><span class="page-link"><i class="bi bi-chevron-double-right"></i></span></li>
+          {% endif %}
+        </ul>
+      </nav>
+      <small class="text-muted d-block text-center mt-2">
+        Página {{ ultimas_ventas.number }} de {{ paginator.num_pages }} • 
+        {{ paginator.count }} venta(s) encontrada(s)
+      </small>
+    </div>
+    {% endif %}
   </div>
 
-  <!-- Vista Móvil: Tarjetas -->
-  <div class="d-md-none">
-    <div class="mobile-sales-list">
+  <!-- Vista Móvil: Tarjetas con Paginación -->
+  <div class="d-lg-none">
+    <div class="mobile-sales">
       {% for v in ultimas_ventas %}
-      <div class="sale-card-mobile">
-        <div class="sale-header">
-          <div class="sale-id">Venta #{{ v.pk }}</div>
-          <div class="sale-status">
-            {% if v.estado_pago == 'pagado' %}
-              <span class="badge-dashboard success">Pagado</span>
-            {% elif v.estado_pago == 'parcial' %}
-              <span class="badge-dashboard warning">Parcial</span>
-            {% else %}
-              <span class="badge-dashboard danger">Pendiente</span>
-            {% endif %}
-          </div>
+      <div class="sale-card">
+        <div class="sale-card-header">
+          <span class="sale-number">Venta {{ v.pk }}</span>
+          {% if v.estado_pago == 'pagado' %}
+            <span class="status-badge paid">Pagado</span>
+          {% elif v.estado_pago == 'parcial' %}
+            <span class="status-badge partial">Parcial</span>
+          {% else %}
+            <span class="status-badge pending">Pendiente</span>
+          {% endif %}
         </div>
-        <div class="sale-body">
-          <div class="sale-info">
+        <div class="sale-card-body">
+          <div class="info-row">
             <i class="bi bi-person-fill"></i>
             <span>{{ v.cliente.nombre_completo|default:v.cliente.nombre }}</span>
           </div>
-          <div class="sale-info">
+          <div class="info-row">
             <i class="bi bi-calendar3"></i>
             <span>{{ v.fecha|date:"d/m/Y H:i" }}</span>
           </div>
-          <div class="sale-info highlighted">
+          <div class="info-row total">
             <i class="bi bi-cash-stack"></i>
-            <span class="total">${{ v.total|floatformat:2 }}</span>
+            <strong>${{ v.total|floatformat:2 }}</strong>
           </div>
         </div>
-        <div class="sale-footer">
-          <a href="{% url 'venta_detalle' v.pk %}" class="btn-mobile-action">
+        <div class="sale-card-footer">
+          <a href="{% url 'venta_detalle' v.pk %}" class="btn-view">
             <i class="bi bi-eye-fill"></i> Ver detalle
           </a>
         </div>
       </div>
       {% empty %}
-      <div class="empty-state-mobile">
-        <i class="bi bi-inbox display-1 opacity-25"></i>
-        <p>No hay ventas registradas</p>
+      <div class="empty-mobile">
+        <i class="bi bi-inbox"></i>
+        <p>No se encontraron ventas</p>
+        {% if query or estado_filter %}
+          <a href="{% url 'dashboard' %}" class="btn btn-sm btn-outline-primary mt-2">
+            <i class="bi bi-x-circle"></i> Limpiar filtros
+          </a>
+        {% endif %}
       </div>
       {% endfor %}
     </div>
+
+    <!-- Paginación Móvil -->
+    {% if paginator.num_pages > 1 %}
+    <div class="pagination-mobile d-flex justify-content-center gap-2 p-3 border-top">
+      {% if ultimas_ventas.has_previous %}
+        <a href="?page=1&q={{ query }}&estado={{ estado_filter }}" class="btn btn-sm btn-outline-secondary">
+          <i class="bi bi-chevron-double-left"></i>
+        </a>
+        <a href="?page={{ ultimas_ventas.previous_page_number }}&q={{ query }}&estado={{ estado_filter }}" class="btn btn-sm btn-outline-secondary">
+          <i class="bi bi-chevron-left"></i> Anterior
+        </a>
+      {% endif %}
+      
+      <span class="btn btn-sm btn-light disabled">
+        {{ ultimas_ventas.number }}/{{ paginator.num_pages }}
+      </span>
+      
+      {% if ultimas_ventas.has_next %}
+        <a href="?page={{ ultimas_ventas.next_page_number }}&q={{ query }}&estado={{ estado_filter }}" class="btn btn-sm btn-outline-secondary">
+          Siguiente <i class="bi bi-chevron-right"></i>
+        </a>
+        <a href="?page={{ ultimas_ventas.paginator.num_pages }}&q={{ query }}&estado={{ estado_filter }}" class="btn btn-sm btn-outline-secondary">
+          <i class="bi bi-chevron-double-right"></i>
+        </a>
+      {% endif %}
+    </div>
+    {% endif %}
   </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-
 <script>
   document.addEventListener('DOMContentLoaded', function() {
-    // Datos para el gráfico
-    let fechasUltimos7Dias = {{ fechas_ultimos_7_dias|safe }};
-    let ventasUltimos7Dias = {{ ventas_ultimos_7_dias|safe }};
-    let ingresosUltimos7Dias = {{ ingresos_ultimos_7_dias|safe }};
-    
     const ctx = document.getElementById('ventasChart');
-    if (ctx && fechasUltimos7Dias && fechasUltimos7Dias.length > 0) {
+    if (ctx) {
+      const fechas = {{ fechas_ultimos_7_dias|default:'[]'|safe }};
+      const ventas = {{ ventas_ultimos_7_dias|default:'[]'|safe }};
+      const ingresos = {{ ingresos_ultimos_7_dias|default:'[]'|safe }};
+
       new Chart(ctx, {
         type: 'line',
         data: {
-          labels: fechasUltimos7Dias,
+          labels: fechas,
           datasets: [
             {
               label: 'Ingresos ($)',
-              data: ingresosUltimos7Dias,
-              borderColor: '#4F46E5',
-              backgroundColor: 'rgba(79, 70, 229, 0.05)',
-              borderWidth: 2,
-              tension: 0.3,
-              fill: true,
-              pointBackgroundColor: '#4F46E5',
-              pointBorderColor: '#fff',
-              pointBorderWidth: 2,
-              pointRadius: 4,
-              pointHoverRadius: 6,
-              yAxisID: 'y'
-            },
-            {
-              label: 'Ventas',
-              data: ventasUltimos7Dias,
+              data: ingresos,
               borderColor: '#10B981',
               backgroundColor: 'rgba(16, 185, 129, 0.05)',
-              borderWidth: 2,
-              tension: 0.3,
+              borderWidth: 3,
+              tension: 0.4,
               fill: true,
               pointBackgroundColor: '#10B981',
               pointBorderColor: '#fff',
               pointBorderWidth: 2,
-              pointRadius: 4,
-              pointHoverRadius: 6,
+              pointRadius: 5,
+              pointHoverRadius: 7,
+              yAxisID: 'y'
+            },
+            {
+              label: 'Número de Ventas',
+              data: ventas,
+              borderColor: '#6366F1',
+              backgroundColor: 'rgba(99, 102, 241, 0.05)',
+              borderWidth: 3,
+              tension: 0.4,
+              fill: true,
+              pointBackgroundColor: '#6366F1',
+              pointBorderColor: '#fff',
+              pointBorderWidth: 2,
+              pointRadius: 5,
+              pointHoverRadius: 7,
               yAxisID: 'y1'
             }
           ]
@@ -304,24 +448,23 @@
           },
           plugins: {
             legend: {
-              position: 'top',
-              labels: {
-                usePointStyle: true,
-                boxWidth: 10
-              }
+              display: false
             },
             tooltip: {
-              backgroundColor: 'rgba(0,0,0,0.8)',
-              padding: 10,
+              backgroundColor: '#1F2937',
+              titleColor: '#F3F4F6',
+              bodyColor: '#D1D5DB',
+              padding: 12,
               cornerRadius: 8,
+              displayColors: true,
               callbacks: {
                 label: function(context) {
                   let label = context.dataset.label || '';
                   let value = context.parsed.y;
                   if (label === 'Ingresos ($)') {
-                    return label + ': $' + value.toFixed(2);
+                    return label + ': $' + value.toLocaleString();
                   }
-                  return label + ': ' + value + ' venta(s)';
+                  return label + ': ' + value;
                 }
               }
             }
@@ -329,30 +472,41 @@
           scales: {
             y: {
               beginAtZero: true,
+              grid: {
+                color: 'rgba(0,0,0,0.05)',
+                drawBorder: false
+              },
               title: {
                 display: true,
                 text: 'Ingresos ($)',
-                color: '#4F46E5'
+                color: '#6B7280',
+                font: { size: 11 }
               },
-              grid: {
-                color: 'rgba(0,0,0,0.05)'
+              ticks: {
+                callback: function(value) {
+                  return '$' + value.toLocaleString();
+                }
               }
             },
             y1: {
               position: 'right',
               beginAtZero: true,
-              title: {
-                display: true,
-                text: 'Cantidad de ventas',
-                color: '#10B981'
-              },
               grid: {
                 drawOnChartArea: false
+              },
+              title: {
+                display: true,
+                text: 'Cantidad de Ventas',
+                color: '#6B7280',
+                font: { size: 11 }
               }
             },
             x: {
               grid: {
                 display: false
+              },
+              ticks: {
+                color: '#6B7280'
               }
             }
           }
@@ -363,175 +517,515 @@
 </script>
 
 <style>
-  /* ========== VARIABLES ========== */
+  /* Variables Globales */
   :root {
-    --primary-start: #4F46E5;
-    --primary-end: #7C3AED;
+    --primary: #6366F1;
+    --primary-dark: #4F46E5;
+    --secondary: #8B5CF6;
     --success: #10B981;
     --warning: #F59E0B;
     --danger: #EF4444;
     --info: #06B6D4;
-    --border-light: #E5E7EB;
-    --bg-gray: #F9FAFB;
+    --gray-50: #F9FAFB;
+    --gray-100: #F3F4F6;
+    --gray-200: #E5E7EB;
+    --gray-300: #D1D5DB;
+    --gray-600: #4B5563;
+    --gray-700: #374151;
+    --gray-800: #1F2937;
+    --gray-900: #111827;
   }
 
-  /* ========== TARJETAS DE ESTADÍSTICAS ========== */
-  .stat-card-modern {
-    background: white;
-    border-radius: 20px;
-    padding: 1rem;
-    display: flex;
-    gap: 1rem;
-    align-items: center;
-    transition: all 0.3s ease;
-    border: 1px solid var(--border-light);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  /* Layout Principal */
+  .dashboard-header {
+    margin-bottom: 2rem;
   }
 
-  .stat-card-modern:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
-  }
-
-  .stat-icon {
-    width: 50px;
-    height: 50px;
-    border-radius: 16px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.5rem;
-  }
-
-  .bg-primary-soft { background: rgba(79, 70, 229, 0.1); }
-  .bg-warning-soft { background: rgba(245, 158, 11, 0.1); }
-  .bg-success-soft { background: rgba(16, 185, 129, 0.1); }
-  .bg-info-soft { background: rgba(6, 182, 212, 0.1); }
-
-  .stat-content { flex: 1; }
-  .stat-label { font-size: 0.7rem; color: #6B7280; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px; }
-  .stat-value { font-size: 1.8rem; font-weight: 800; color: #1F2937; line-height: 1.2; }
-  .stat-revenue { font-size: 0.75rem; color: var(--success); font-weight: 600; margin-top: 4px; }
-
-  /* ========== TARJETAS MODERNAS ========== */
-  .card-modern {
-    background: white;
-    border-radius: 20px;
-    border: 1px solid var(--border-light);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-    overflow: hidden;
-  }
-
-  .card-header-custom {
-    padding: 1.25rem;
-    border-bottom: 1px solid var(--border-light);
+  .header-content {
     display: flex;
     justify-content: space-between;
     align-items: center;
     flex-wrap: wrap;
-    gap: 0.75rem;
+    gap: 1rem;
+  }
+
+  .title-section {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .icon-wrapper {
+    width: 48px;
+    height: 48px;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .icon-wrapper i {
+    font-size: 24px;
+    color: white;
+  }
+
+  .dashboard-title {
+    font-size: 1.875rem;
+    font-weight: 700;
+    color: var(--gray-900);
+    margin: 0;
+    line-height: 1.2;
+  }
+
+  .dashboard-subtitle {
+    color: var(--gray-600);
+    margin: 0;
+    font-size: 0.875rem;
+  }
+
+  .btn-refresh {
     background: white;
+    border: 1px solid var(--gray-200);
+    padding: 0.5rem 1.25rem;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--gray-700);
+    font-weight: 500;
+    transition: all 0.2s;
+    cursor: pointer;
   }
 
-  .card-footer-custom {
-    padding: 1rem 1.25rem;
-    border-top: 1px solid var(--border-light);
-    background: var(--bg-gray);
+  .btn-refresh:hover {
+    background: var(--gray-50);
+    border-color: var(--gray-300);
+    transform: translateY(-1px);
   }
 
-  .chart-container { padding: 1rem; }
+  /* Grid de KPI */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+  }
 
-  /* ========== STOCK CARD ========== */
-  .badge-stock {
-    padding: 0.25rem 0.75rem;
-    border-radius: 30px;
-    font-size: 0.7rem;
+  .kpi-card {
+    background: white;
+    border-radius: 20px;
+    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    border: 1px solid var(--gray-200);
+    transition: all 0.3s;
+  }
+
+  .kpi-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px -12px rgba(0, 0, 0, 0.15);
+  }
+
+  .kpi-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+  }
+
+  .kpi-icon.blue {
+    background: linear-gradient(135deg, #E0E7FF, #C7D2FE);
+    color: var(--primary);
+  }
+
+  .kpi-icon.orange {
+    background: linear-gradient(135deg, #FEF3C7, #FDE68A);
+    color: var(--warning);
+  }
+
+  .kpi-icon.green {
+    background: linear-gradient(135deg, #D1FAE5, #A7F3D0);
+    color: var(--success);
+  }
+
+  .kpi-icon.purple {
+    background: linear-gradient(135deg, #EDE9FE, #DDD6FE);
+    color: var(--secondary);
+  }
+
+  .kpi-info {
+    flex: 1;
+  }
+
+  .kpi-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    color: var(--gray-600);
+    display: block;
+  }
+
+  .kpi-value {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--gray-900);
+    line-height: 1;
+    display: block;
+    margin: 0.25rem 0;
+  }
+
+  .kpi-sub {
+    font-size: 0.75rem;
+    color: var(--success);
     font-weight: 600;
   }
-  
-  .badge-stock.danger { background: #FEE2E2; color: var(--danger); }
-  .badge-stock.success { background: #D1FAE5; color: var(--success); }
+
+  /* Dashboard Grid */
+  .dashboard-grid {
+    display: grid;
+    grid-template-columns: 1fr 0.8fr;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+  }
+
+  @media (max-width: 1024px) {
+    .dashboard-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  /* Chart Card */
+  .chart-card {
+    background: white;
+    border-radius: 20px;
+    border: 1px solid var(--gray-200);
+    overflow: hidden;
+  }
+
+  .card-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--gray-200);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .card-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--gray-900);
+    margin: 0;
+  }
+
+  .card-subtitle {
+    font-size: 0.75rem;
+    color: var(--gray-600);
+    margin: 0.25rem 0 0;
+  }
+
+  .chart-legend {
+    display: flex;
+    gap: 1rem;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+    color: var(--gray-600);
+  }
+
+  .legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+  }
+
+  .legend-dot.revenue {
+    background: var(--success);
+  }
+
+  .legend-dot.sales {
+    background: var(--primary);
+  }
+
+  .chart-container {
+    padding: 1.5rem;
+  }
+
+  /* Stock Card */
+  .stock-card {
+    background: white;
+    border-radius: 20px;
+    border: 1px solid var(--gray-200);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .stock-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+
+  .stock-badge.danger {
+    background: #FEF2F2;
+    color: var(--danger);
+  }
+
+  .stock-badge.success {
+    background: #F0FDF4;
+    color: var(--success);
+  }
 
   .stock-list {
-    max-height: 280px;
+    flex: 1;
+    max-height: 320px;
     overflow-y: auto;
   }
 
   .stock-item {
-    padding: 0.875rem 1.25rem;
-    border-bottom: 1px solid var(--border-light);
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--gray-100);
     display: flex;
     justify-content: space-between;
     align-items: center;
     transition: background 0.2s;
   }
 
-  .stock-item:hover { background: var(--bg-gray); }
-
-  .stock-name { font-weight: 600; font-size: 0.9rem; color: #1F2937; }
-  .stock-id { font-size: 0.7rem; color: #9CA3AF; margin-top: 2px; }
-
-  .stock-badge {
-    padding: 0.25rem 0.7rem;
-    border-radius: 30px;
-    font-size: 0.7rem;
-    font-weight: 600;
+  .stock-item:hover {
+    background: var(--gray-50);
   }
 
-  .stock-badge.critical { background: #FEE2E2; color: #991B1B; }
-  .stock-badge.low { background: #FEF3C7; color: #92400E; }
-  .stock-badge.warning { background: #FFEDD5; color: #9A3412; }
+  .product-name {
+    font-weight: 600;
+    color: var(--gray-900);
+    font-size: 0.9rem;
+  }
+
+  .product-id {
+    font-size: 0.7rem;
+    color: var(--gray-500);
+    margin-top: 2px;
+  }
+
+  .stock-status {
+    text-align: right;
+  }
+
+  .stock-count {
+    font-weight: 700;
+    font-size: 1rem;
+  }
+
+  .stock-count.critical {
+    color: var(--danger);
+  }
+
+  .stock-count.low {
+    color: var(--warning);
+  }
+
+  .stock-count.warning {
+    color: #EA580C;
+  }
+
+  .stock-unit {
+    font-size: 0.7rem;
+    color: var(--gray-600);
+    margin-left: 2px;
+  }
 
   .empty-stock {
     text-align: center;
-    padding: 2rem 1rem;
+    padding: 2rem;
   }
 
-  .empty-stock i { font-size: 2rem; margin-bottom: 0.5rem; }
+  .empty-icon {
+    width: 48px;
+    height: 48px;
+    background: #F0FDF4;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1rem;
+  }
 
-  /* ========== TABLA DASHBOARD ========== */
-  .table-modern-dashboard {
+  .empty-icon i {
+    font-size: 24px;
+    color: var(--success);
+  }
+
+  .empty-stock p {
+    margin: 0;
+    color: var(--gray-700);
+    font-weight: 500;
+  }
+
+  .empty-stock small {
+    color: var(--gray-500);
+    font-size: 0.75rem;
+  }
+
+  .card-footer {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid var(--gray-100);
+    background: var(--gray-50);
+  }
+
+  .link-action {
+    color: var(--primary);
+    text-decoration: none;
+    font-size: 0.875rem;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    transition: all 0.2s;
+  }
+
+  .link-action:hover {
+    gap: 0.5rem;
+    color: var(--primary-dark);
+  }
+
+  /* Sales Section */
+  .sales-section {
+    background: white;
+    border-radius: 20px;
+    border: 1px solid var(--gray-200);
+    overflow: hidden;
+  }
+
+  .sales-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--gray-200);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .btn-new-sale {
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white;
+    border: none;
+    padding: 0.5rem 1.25rem;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: all 0.2s;
+  }
+
+  .btn-new-sale:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+    color: white;
+  }
+
+  /* Sales Table */
+  .sales-table {
+    overflow-x: auto;
+  }
+
+  .sales-table table {
     width: 100%;
     border-collapse: collapse;
   }
 
-  .table-modern-dashboard thead th {
-    padding: 0.875rem 1.25rem;
-    background: var(--bg-gray);
+  .sales-table thead th {
+    text-align: left;
+    padding: 1rem 1.5rem;
+    background: var(--gray-50);
+    color: var(--gray-600);
     font-size: 0.75rem;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    color: #6B7280;
-    border-bottom: 2px solid var(--border-light);
+    border-bottom: 1px solid var(--gray-200);
   }
 
-  .table-modern-dashboard tbody td {
-    padding: 0.875rem 1.25rem;
-    border-bottom: 1px solid var(--border-light);
-    vertical-align: middle;
+  .sales-table tbody td {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--gray-100);
   }
 
-  .table-modern-dashboard tbody tr:hover { background: var(--bg-gray); }
+  .sales-table tbody tr:hover {
+    background: var(--gray-50);
+  }
 
-  .client-info { display: flex; align-items: center; gap: 0.5rem; }
-  .client-info i { color: #9CA3AF; }
+  .sale-id {
+    font-weight: 600;
+    color: var(--primary);
+  }
 
-  .badge-dashboard {
+  .client-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .client-cell i {
+    color: var(--gray-400);
+  }
+
+  .date-cell {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .date-cell small {
+    font-size: 0.7rem;
+    color: var(--gray-500);
+  }
+
+  .status-badge {
     display: inline-flex;
     align-items: center;
-    gap: 0.3rem;
+    gap: 0.375rem;
     padding: 0.25rem 0.75rem;
-    border-radius: 30px;
-    font-size: 0.7rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
     font-weight: 600;
   }
 
-  .badge-dashboard.success { background: #D1FAE5; color: #065F46; }
-  .badge-dashboard.warning { background: #FEF3C7; color: #92400E; }
-  .badge-dashboard.danger { background: #FEE2E2; color: #991B1B; }
+  .status-badge.paid {
+    background: #F0FDF4;
+    color: var(--success);
+  }
 
-  .btn-icon {
+  .status-badge.partial {
+    background: #FEF3C7;
+    color: var(--warning);
+  }
+
+  .status-badge.pending {
+    background: #FEF2F2;
+    color: var(--danger);
+  }
+
+  .sale-total {
+    font-weight: 700;
+    color: var(--success);
+  }
+
+  .action-btn {
     width: 32px;
     height: 32px;
     border-radius: 8px;
@@ -539,147 +1033,276 @@
     align-items: center;
     justify-content: center;
     background: #EEF2FF;
-    color: var(--primary-start);
+    color: var(--primary);
     transition: all 0.2s;
   }
 
-  .btn-icon:hover {
-    background: var(--primary-start);
+  .action-btn:hover {
+    background: var(--primary);
     color: white;
-    transform: translateY(-2px);
   }
 
-  .btn-link {
-    color: var(--primary-start);
-    text-decoration: none;
-    font-size: 0.85rem;
-    font-weight: 500;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.2rem;
+  .empty-table {
+    text-align: center;
+    padding: 3rem !important;
   }
 
-  .btn-link:hover { gap: 0.5rem; color: var(--primary-dark); }
+  .empty-table i {
+    font-size: 48px;
+    color: var(--gray-300);
+    display: block;
+    margin-bottom: 1rem;
+  }
 
-  /* ========== VISTA MÓVIL ========== */
-  .mobile-sales-list { padding: 0.5rem; }
-  
-  .sale-card-mobile {
+  .empty-table p {
+    color: var(--gray-500);
+    margin: 0;
+  }
+
+  /* Mobile Sales */
+  .mobile-sales {
+    padding: 1rem;
+  }
+
+  .sale-card {
     background: white;
+    border: 1px solid var(--gray-200);
     border-radius: 16px;
     padding: 1rem;
-    margin-bottom: 0.75rem;
-    border: 1px solid var(--border-light);
+    margin-bottom: 1rem;
     transition: all 0.2s;
   }
 
-  .sale-card-mobile:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+  .sale-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  }
 
-  .sale-header {
+  .sale-card-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 0.75rem;
-    padding-bottom: 0.5rem;
-    border-bottom: 1px solid var(--border-light);
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--gray-100);
   }
 
-  .sale-id {
+  .sale-number {
     font-weight: 700;
-    font-size: 0.85rem;
-    color: var(--primary-start);
+    color: var(--primary);
   }
 
-  .sale-body { margin-bottom: 0.75rem; }
+  .sale-card-body {
+    margin-bottom: 1rem;
+  }
 
-  .sale-info {
+  .info-row {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    font-size: 0.85rem;
-    padding: 0.3rem 0;
-    color: #4B5563;
+    gap: 0.75rem;
+    padding: 0.5rem 0;
+    color: var(--gray-600);
+    font-size: 0.875rem;
   }
 
-  .sale-info i { width: 20px; color: #9CA3AF; }
-  .sale-info.highlighted { margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px dashed var(--border-light); }
-  .sale-info.highlighted i { color: var(--success); }
-  .sale-info .total { font-weight: 700; font-size: 1.1rem; color: var(--success); }
+  .info-row i {
+    width: 20px;
+    color: var(--gray-400);
+  }
 
-  .btn-mobile-action {
+  .info-row.total {
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px dashed var(--gray-200);
+  }
+
+  .info-row.total i {
+    color: var(--success);
+  }
+
+  .info-row.total strong {
+    color: var(--success);
+    font-size: 1.125rem;
+  }
+
+  .sale-card-footer {
+    padding-top: 0.5rem;
+  }
+
+  .btn-view {
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
     width: 100%;
-    padding: 0.6rem;
-    border-radius: 12px;
-    background: linear-gradient(135deg, var(--primary-start), var(--primary-end));
+    padding: 0.625rem;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
     color: white;
     text-decoration: none;
-    font-size: 0.8rem;
-    font-weight: 500;
-    transition: all 0.2s;
-  }
-
-  .btn-mobile-action:hover { transform: translateY(-2px); color: white; }
-
-  .empty-state-mobile {
-    text-align: center;
-    padding: 2rem;
-    color: #9CA3AF;
-  }
-
-  .empty-state-mobile i { margin-bottom: 0.5rem; }
-
-  /* ========== UTILIDADES ========== */
-  .text-gradient {
-    background: linear-gradient(135deg, var(--primary-start), var(--primary-end));
-    background-clip: text;
-    -webkit-background-clip: text;
-    color: transparent;
-  }
-
-  .btn-primary-gradient {
-    background: linear-gradient(135deg, var(--primary-start), var(--primary-end));
-    border: none;
-    color: white;
-    padding: 0.5rem 1rem;
     border-radius: 10px;
+    font-size: 0.875rem;
     font-weight: 500;
     transition: all 0.2s;
   }
 
-  .btn-primary-gradient:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+  .btn-view:hover {
+    transform: translateY(-1px);
     color: white;
   }
 
-  /* ========== RESPONSIVE ========== */
-  @media (max-width: 768px) {
-    .stat-card-modern { padding: 0.875rem; }
-    .stat-value { font-size: 1.4rem; }
-    .stat-icon { width: 40px; height: 40px; font-size: 1.2rem; border-radius: 12px; }
-    .card-header-custom { padding: 0.875rem; flex-direction: column; align-items: stretch; }
-    .stock-item { padding: 0.75rem; }
+  .empty-mobile {
+    text-align: center;
+    padding: 3rem;
+    color: var(--gray-500);
   }
 
-  @media (max-width: 480px) {
-    .stat-value { font-size: 1.2rem; }
-    .stat-label { font-size: 0.65rem; }
-    .stat-revenue { font-size: 0.65rem; }
+  .empty-mobile i {
+    font-size: 48px;
+    margin-bottom: 1rem;
+    color: var(--gray-300);
   }
 
+  .empty-mobile p {
+    margin: 0;
+  }
+
+  /* Scrollbar */
   .stock-list::-webkit-scrollbar {
-    width: 4px;
+    width: 6px;
   }
+
   .stock-list::-webkit-scrollbar-track {
-    background: #f1f1f1;
+    background: var(--gray-100);
   }
+
   .stock-list::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
-    border-radius: 4px;
+    background: var(--gray-300);
+    border-radius: 3px;
   }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .kpi-grid {
+      gap: 1rem;
+    }
+
+    .kpi-card {
+      padding: 1rem;
+    }
+
+    .kpi-icon {
+      width: 48px;
+      height: 48px;
+      font-size: 20px;
+    }
+
+    .kpi-value {
+      font-size: 1.5rem;
+    }
+
+    .card-header {
+      padding: 1rem;
+    }
+
+    .chart-container {
+      padding: 1rem;
+    }    
+  }
+
+  /* ========== BARRA DE BÚSQUEDA ========== */
+.search-bar {
+  background: var(--gray-50);
+  border-radius: 0 0 20px 20px;
+}
+
+.search-input-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: white;
+  border: 1px solid var(--gray-200);
+  border-radius: 12px;
+  padding: 0.5rem 1rem;
+  transition: all 0.2s;
+}
+
+.search-input-group:focus-within {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.search-input-group i {
+  color: var(--gray-400);
+}
+
+.search-input-group input {
+  outline: none;
+  font-size: 0.9rem;
+}
+
+/* ========== PAGINACIÓN MODERNA ========== */
+.pagination-wrapper {
+  background: var(--gray-50);
+  border-radius: 0 0 20px 20px;
+}
+
+.pagination-modern .page-link {
+  border: none;
+  color: var(--gray-600);
+  padding: 0.5rem 0.875rem;
+  margin: 0 0.125rem;
+  border-radius: 8px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.pagination-modern .page-link:hover {
+  background: var(--gray-200);
+  color: var(--gray-900);
+}
+
+.pagination-modern .page-item.active .page-link {
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  color: white;
+  font-weight: 600;
+}
+
+.pagination-modern .page-item.disabled .page-link {
+  color: var(--gray-300);
+  background: transparent;
+}
+
+/* Paginación móvil */
+.pagination-mobile .btn {
+  border-radius: 10px;
+  font-weight: 500;
+}
+
+.pagination-mobile .btn.disabled {
+  background: var(--gray-100);
+  color: var(--gray-500);
+}
+
+/* ========== RESPONSIVE ========== */
+@media (max-width: 768px) {
+  .search-bar {
+    border-radius: 0;
+  }
+  
+  .search-input-group {
+    width: 100%;
+    order: 3;
+    margin-top: 0.5rem;
+  }
+  
+  #searchForm {
+    flex-direction: column;
+    align-items: stretch !important;
+  }
+  
+  #estadoFilter, #searchForm button {
+    width: 100%;
+    max-width: none;
+  }
+}
 </style>
 {% endblock %}

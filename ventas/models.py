@@ -51,7 +51,7 @@ class Venta(models.Model):
     ESTADO_PAGO_CHOICES = [
         ('pendiente', 'Pendiente'),
         ('pagado', 'Pagado'),
-        ('pacial', 'Pago Parcial'),
+        ('parcial', 'Pago Parcial'),
     ]
 
     cliente = models.ForeignKey(

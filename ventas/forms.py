@@ -45,33 +45,17 @@ class ClienteForm(forms.ModelForm):
         }
 
 
+ 
+
 class VentaForm(forms.ModelForm):
     class Meta:
         model = Venta
-        fields = ['cliente', 'estado', 'notas']
+        fields = ['cliente', 'notas']  # ✅ Quitar 'estado' de aquí
         widgets = {
             'cliente': forms.Select(attrs={'class': CSS_SELECT}),
-            'estado': forms.Select(attrs={'class': CSS_SELECT}),
             'notas': forms.Textarea(attrs={'class': CSS, 'rows': 2}),
         }
 
-
-class DetalleVentaForm(forms.ModelForm):
-    class Meta:
-        model = DetalleVenta
-        fields = ['producto', 'cantidad']
-        widgets = {
-            'producto': forms.Select(attrs={'class': CSS_SELECT + ' producto-select'}),
-            'cantidad': forms.NumberInput(attrs={'class': CSS + ' cantidad-input', 'min': 1}),
-        }
-
-
-DetalleVentaFormSet = inlineformset_factory(
-    Venta,
-    DetalleVenta,
-    form=DetalleVentaForm,
-    extra=3,
-    can_delete=True,
-    min_num=1,
-    validate_min=True,
-)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['notas'].required = False

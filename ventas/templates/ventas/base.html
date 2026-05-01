@@ -407,42 +407,61 @@
       outline: 2px solid var(--color-primary);
       outline-offset: 2px;
     }
-/* 📱 Tabla de clientes: optimización móvil */
-@media (max-width: 767px) {
-  /* Forzar que la columna de acciones no se comprima */
-  .table td:last-child {
-    min-width: 140px;
-    width: 140px;
-  }
-  
-  /* Botones de acción: full-width, fácil de tocar */
-  .table .btn-sm {
-    padding: 0.5rem 0.75rem !important;
-    font-size: 0.9rem !important;
-    min-height: 44px; /* Área táctil mínima recomendada */
-  }
-  
-  /* Evitar que el texto del nombre se corte mal */
-  .text-truncate {
-    max-width: 180px;
-    display: inline-block;
-    vertical-align: middle;
-  }
-}
 
-/* 🖥️ Desktop: botones horizontales y compactos */
-@media (min-width: 768px) {
-  .table td:last-child {
-    text-align: end;
-    white-space: nowrap;
-  }
-  .table .btn-sm {
-    padding: 0.35rem 0.85rem !important;
-    min-width: auto;
-    width: auto;
-  }
-}
-    
+    /* 📱 Tabla de clientes: optimización móvil */
+    @media (max-width: 767px) {
+
+      /* Forzar que la columna de acciones no se comprima */
+      .table td:last-child {
+        min-width: 140px;
+        width: 140px;
+      }
+
+      /* Botones de acción: full-width, fácil de tocar */
+      .table .btn-sm {
+        padding: 0.5rem 0.75rem !important;
+        font-size: 0.9rem !important;
+        min-height: 44px;
+        /* Área táctil mínima recomendada */
+      }
+
+      /* Evitar que el texto del nombre se corte mal */
+      .text-truncate {
+        max-width: 180px;
+        display: inline-block;
+        vertical-align: middle;
+      }
+    }
+
+    /* 🖥️ Desktop: botones horizontales y compactos */
+    @media (min-width: 768px) {
+      .table td:last-child {
+        text-align: end;
+        white-space: nowrap;
+      }
+
+      .table .btn-sm {
+        padding: 0.35rem 0.85rem !important;
+        min-width: auto;
+        width: auto;
+      }
+    }
+
+    .btn-logout {
+      color: var(--gray-600);
+      transition: color 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+
+    .btn-logout:hover {
+      color: var(--danger);
+    }
+
+    .btn-logout i {
+      font-size: 1.1rem;
+    }
   </style>
 </head>
 
@@ -465,9 +484,14 @@
           <i class="bi bi-person-circle fs-5"></i>
           <span class="d-none d-sm-inline">{{ request.user.username }}</span>
         </div>
-        <a href="{% url 'logout' %}" class="btn btn-logout btn-sm">
-          <i class="bi bi-box-arrow-right"></i> <span class="d-none d-sm-inline">Salir</span>
-        </a>
+
+        <!-- ✅ Logout con FORM POST (seguro) -->
+        <form method="POST" action="{% url 'logout' %}" class="d-inline" id="logoutForm">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-logout btn-sm border-0 bg-transparent p-0">
+            <i class="bi bi-box-arrow-right"></i> <span class="d-none d-sm-inline">Salir</span>
+          </button>
+        </form>
       </div>
     </div>
   </nav>

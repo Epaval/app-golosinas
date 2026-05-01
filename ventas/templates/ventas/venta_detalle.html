@@ -2,7 +2,7 @@
 {% block title %}Venta #{{ venta.pk }}{% endblock %}
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-  <h4 class="fw-bold mb-0">🧾 Venta #{{ venta.pk }}</h4>
+  <h4 class="fw-bold mb-0">🧾 Venta {{ venta.pk }}</h4>
   <a href="{% url 'venta_lista' %}" class="btn btn-outline-secondary">← Regresar</a>
 </div>
 
