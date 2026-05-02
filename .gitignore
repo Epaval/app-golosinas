@@ -1,14 +1,13 @@
 # Python
 __pycache__/
 *.py[cod]
-*$py.class
 *.so
 .Python
 env/
 venv/
+.venv/
 .env
 .env.local
-.venv
 
 # Django
 *.log
@@ -16,15 +15,8 @@ db.sqlite3
 db.sqlite3-journal
 /staticfiles/
 /static/
-/media/
-
-# Archivos sensibles
-settings_local.py
-*.pem
-*.key
 
 # IDE
 .vscode/
 .idea/
 *.swp
-*.swo
