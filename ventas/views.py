@@ -89,7 +89,7 @@ def dashboard(request):
         ultimas_ventas_qs = ultimas_ventas_qs.filter(estado_pago=estado_filter)
 
     # 📄 PAGINACIÓN
-    paginator = Paginator(ultimas_ventas_qs, 10)  # 10 ventas por página
+    paginator = Paginator(ultimas_ventas_qs, 10)
     page = request.GET.get('page')
     
     try:
@@ -109,11 +109,6 @@ def dashboard(request):
         ventas_por_dia.append(qs.count())
         ingresos_por_dia.append(float(qs.aggregate(total=Sum('total'))['total'] or 0))
 
-    print(f"=== DASHBOARD DEBUG ===")
-    print(f"Fecha: {hoy} | TZ: {timezone.get_current_timezone()}")
-    print(f"Ventas hoy: {ventas_hoy} | Ingresos hoy: {ingresos_hoy}")
-    print(f"Búsqueda: '{query}' | Estado: '{estado_filter}' | Página: {ultimas_ventas.number}")
-
     context = {
         'total_productos': Producto.objects.filter(activo=True).count(),
         'total_clientes': Cliente.objects.filter(activo=True).count(),
@@ -122,7 +117,7 @@ def dashboard(request):
         'ventas_mes': ventas_mes,
         'ingresos_mes': ingresos_mes,
         'productos_bajo_stock': productos_bajo_stock,
-        'ultimas_ventas': ultimas_ventas,  # ← Ahora es un Page object
+        'ultimas_ventas': ultimas_ventas,
         'paginator': paginator,
         'page_obj': ultimas_ventas,
         'query': query,
@@ -133,12 +128,14 @@ def dashboard(request):
     }
 
     return render(request, 'ventas/dashboard.html', context)
+
+
 # ─── Productos ─────────────────────────────────────────────────────────────────
 
 @login_required
 def producto_lista(request):
     q = request.GET.get('q', '')
-    productos = Producto.objects.all()
+    productos = Producto.objects.filter(activo=True)
     if q:
         productos = productos.filter(
             Q(nombre__icontains=q) | Q(descripcion__icontains=q))
@@ -148,7 +145,7 @@ def producto_lista(request):
 
 @login_required
 def producto_nuevo(request):
-    form = ProductoForm(request.POST or None)
+    form = ProductoForm(request.POST or None, request.FILES or None)
     if form.is_valid():
         form.save()
         messages.success(request, 'Producto creado correctamente.')
@@ -160,7 +157,7 @@ def producto_nuevo(request):
 @login_required
 def producto_editar(request, pk):
     producto = get_object_or_404(Producto, pk=pk)
-    form = ProductoForm(request.POST or None, instance=producto)
+    form = ProductoForm(request.POST or None, request.FILES or None, instance=producto)
     if form.is_valid():
         form.save()
         messages.success(request, 'Producto actualizado.')
@@ -245,22 +242,17 @@ def venta_lista(request):
     return render(request, 'ventas/venta_lista.html', {'ventas': ventas})
 
 
-
-# ---------Ventas nuevas ---------------
-
 @login_required
 def venta_nueva(request):
     form = VentaForm(request.POST or None)
     
     if request.method == 'POST':
-        # 🔍 DEBUG: Ver qué llega del POST
         print("\n📥 POST keys:", list(request.POST.keys()))
         print("📦 Productos recibidos:", request.POST.getlist('producto_id[]'))
         
         if form.is_valid():
             try:
                 with transaction.atomic():
-                    # ✅ Crear venta con valores por defecto
                     venta = form.save(commit=False)
                     venta.usuario = request.user
                     venta.fecha = timezone.now()
@@ -268,7 +260,6 @@ def venta_nueva(request):
                     venta.estado_pago = 'pendiente'
                     venta.save()
                     
-                    # 🔄 Procesar productos manualmente desde POST
                     productos_ids = request.POST.getlist('producto_id[]')
                     cantidades = request.POST.getlist('cantidad[]')
                     
@@ -281,9 +272,8 @@ def venta_nueva(request):
                             producto = Producto.objects.get(pk=pid, activo=True)
                             
                             if cantidad <= 0 or cantidad > producto.stock:
-                                continue  # Saltar inválidos
+                                continue
                             
-                            # Crear detalle
                             DetalleVenta.objects.create(
                                 venta=venta,
                                 producto=producto,
@@ -291,7 +281,6 @@ def venta_nueva(request):
                                 precio_unitario=producto.precio_unitario
                             )
                             
-                            # Actualizar stock
                             producto.stock = max(0, producto.stock - cantidad)
                             producto.save(update_fields=['stock'])
                             detalles_validos += 1
@@ -303,7 +292,6 @@ def venta_nueva(request):
                         venta.delete()
                         return redirect('venta_nueva')
                     
-                    # Calcular y guardar total
                     venta.calcular_total()
                     messages.success(request, f'✅ Venta #{venta.pk} registrada por ${venta.total:.2f}.')
                     return redirect('venta_lista')
@@ -315,11 +303,12 @@ def venta_nueva(request):
             print(f"❌ Errores del form: {form.errors}")
             messages.error(request, f'❌ Revisa los datos: {form.errors.as_text()}')
     
-    # Para GET o cuando hay errores
     return render(request, 'ventas/venta_form.html', {
         'form': form,
         'productos': Producto.objects.filter(activo=True, stock__gt=0)
     })
+
+
 @login_required
 def venta_detalle(request, pk):
     venta = get_object_or_404(
