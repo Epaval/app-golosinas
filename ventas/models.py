@@ -2,11 +2,15 @@ from django.db import models
 from django.contrib.auth.models import User
 
 
+# ventas/models.py
+from django.db import models
+
 class Producto(models.Model):
     nombre = models.CharField(max_length=100, verbose_name="Nombre")
     descripcion = models.TextField(blank=True, null=True, verbose_name="Descripción")
     precio_unitario = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Precio Unitario ($)")
     stock = models.PositiveIntegerField(default=0, verbose_name="Stock")
+    imagen = models.ImageField(upload_to='productos/', blank=True, null=True, verbose_name="Imagen")
     activo = models.BooleanField(default=True, verbose_name="Activo")
     creado_en = models.DateTimeField(auto_now_add=True)
 
@@ -17,7 +21,6 @@ class Producto(models.Model):
 
     def __str__(self):
         return f"{self.nombre} - ${self.precio_unitario}"
-
 
 class Cliente(models.Model):
     nombre = models.CharField(max_length=150, verbose_name="Nombre")

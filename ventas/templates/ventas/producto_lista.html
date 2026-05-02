@@ -1,502 +1,58 @@
 {% extends 'ventas/base.html' %}
 {% block title %}Productos{% endblock %}
-{% block content %}
 
-<!-- 🔝 Header con acciones -->
-<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
-  <h4 class="fw-bold mb-0 d-flex align-items-center gap-2">
-    <i class="bi bi-box-seam text-gradient"></i> Productos
-  </h4>
-  <a href="{% url 'producto_nuevo' %}" class="btn btn-primary-gradient">
-    <i class="bi bi-plus-lg"></i> Nuevo Producto
-  </a>
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h2>📦 Productos</h2>
+  <a href="{% url 'producto_nuevo' %}" class="btn btn-primary">+ Nuevo Producto</a>
 </div>
 
-<!-- 🔍 Barra de búsqueda moderna -->
-<div class="card border-0 glass-card mb-4 p-3 animate-fade">
-  <form method="get" class="d-flex flex-column flex-sm-row gap-2">
-    <div class="flex-grow-1 position-relative">
-      <i class="bi bi-search position-absolute search-icon"></i>
-      <input type="text" name="q" value="{{ q }}" placeholder="Buscar producto por nombre o descripción..." class="form-control search-input ps-5">
+<!-- Buscador -->
+<div class="mb-3">
+  <form method="GET" class="row g-2">
+    <div class="col-md-10">
+      <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="Buscar producto...">
     </div>
-    <div class="d-flex gap-2">
-      <button class="btn btn-primary-gradient px-4">
-        <i class="bi bi-search me-1"></i> Buscar
-      </button>
-      {% if q %}
-      <a href="{% url 'producto_lista' %}" class="btn btn-outline-secondary">
-        <i class="bi bi-x-lg"></i> Limpiar
-      </a>
-      {% endif %}
+    <div class="col-md-2">
+      <button type="submit" class="btn btn-outline-secondary w-100">🔍 Buscar</button>
     </div>
   </form>
 </div>
 
-<!-- 📋 Tabla de productos responsive -->
-<div class="card border-0 glass-card animate-fade p-0 overflow-hidden">
-  <!-- Vista desktop: tabla tradicional -->
-  <div class="d-none d-md-block">
-    <div class="table-responsive">
-      <table class="table table-modern align-middle mb-0">
-        <thead>
-          <tr>
-            <th class="ps-4">ID</th>
-            <th>Nombre</th>
-            <th>Descripción</th>
-            <th>Precio</th>
-            <th>Stock</th>
-            <th>Estado</th>
-            <th class="text-end pe-4">Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for p in productos %}
-          <tr class="hover-row">
-            <td class="ps-4 fw-semibold text-primary-dark">{{ p.pk }}</td>
-            <td class="fw-semibold">{{ p.nombre }}</td>
-            <td class="text-muted small">{{ p.descripcion|truncatechars:40|default:"—" }}</td>
-            <td class="fw-bold text-amount">${{ p.precio_unitario|floatformat:2 }}</td>
-            <td>
-              <span class="stock-badge {% if p.stock <= 5 %}low{% elif p.stock <= 15 %}medium{% else %}high{% endif %}">
-                <i class="bi bi-box-seam me-1"></i>{{ p.stock }}
-              </span>
-            </td>
-            <td>
-              {% if p.activo %}
-                <span class="status-badge active"><i class="bi bi-check-circle-fill me-1"></i>Activo</span>
-              {% else %}
-                <span class="status-badge inactive"><i class="bi bi-x-circle-fill me-1"></i>Inactivo</span>
-              {% endif %}
-            </td>
-            <td class="text-end pe-4 action-cell">
-              <div class="d-flex gap-2 justify-content-end action-buttons">
-                <a href="{% url 'producto_editar' p.pk %}" class="btn-action edit">
-                  <i class="bi bi-pencil-fill"></i>
-                  <span>Editar</span>
-                </a>
-                <a href="{% url 'producto_eliminar' p.pk %}" class="btn-action delete">
-                  <i class="bi bi-trash-fill"></i>
-                  <span>Desactivar</span>
-                </a>
-              </div>
-            </td>
-          </tr>
-          {% empty %}
-          <tr>
-            <td colspan="7" class="py-5">
-              <div class="text-center text-muted py-4">
-                <div class="empty-state-icon mb-3">
-                  <i class="bi bi-box-seam"></i>
-                </div>
-                <h5 class="fw-semibold mb-2">No hay productos registrados</h5>
-                <p class="mb-4 small">Comienza agregando tu primer producto</p>
-                <a href="{% url 'producto_nuevo' %}" class="btn btn-primary-gradient">
-                  <i class="bi bi-plus-lg"></i> Nuevo Producto
-                </a>
-              </div>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- Vista móvil: tarjetas (cards) -->
-  <div class="d-md-none">
-    <div class="container-fluid px-3 py-3">
-      {% for p in productos %}
-      <div class="product-card mb-3 animate-fade">
-        <div class="product-card-header">
-          <div class="d-flex justify-content-between align-items-start">
-            <div>
-              <span class="product-id">#{{ p.pk }}</span>
-              <h5 class="product-name mb-1">{{ p.nombre }}</h5>
-            </div>
-            <div>
-              {% if p.activo %}
-                <span class="status-badge active small"><i class="bi bi-check-circle-fill"></i> Activo</span>
-              {% else %}
-                <span class="status-badge inactive small"><i class="bi bi-x-circle-fill"></i> Inactivo</span>
-              {% endif %}
-            </div>
-          </div>
-        </div>
-        
-        <div class="product-card-body">
-          <div class="row g-3">
-            <div class="col-12">
-              <div class="info-row">
-                <span class="info-label"><i class="bi bi-card-text"></i> Descripción:</span>
-                <span class="info-value text-muted">{{ p.descripcion|default:"Sin descripción"|truncatechars:80 }}</span>
-              </div>
-            </div>
-            
-            <div class="col-6">
-              <div class="info-row">
-                <span class="info-label"><i class="bi bi-tag"></i> Precio:</span>
-                <span class="info-value price">${{ p.precio_unitario|floatformat:2 }}</span>
-              </div>
-            </div>
-            
-            <div class="col-6">
-              <div class="info-row">
-                <span class="info-label"><i class="bi bi-box-seam"></i> Stock:</span>
-                <span class="info-value">
-                  <span class="stock-badge {% if p.stock <= 5 %}low{% elif p.stock <= 15 %}medium{% else %}high{% endif %}">
-                    {{ p.stock }} unidades
-                  </span>
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        <div class="product-card-footer">
-          <div class="d-flex gap-2">
-            <a href="{% url 'producto_editar' p.pk %}" class="btn-action edit flex-grow-1">
-              <i class="bi bi-pencil-fill"></i> Editar
-            </a>
-            <a href="{% url 'producto_eliminar' p.pk %}" class="btn-action delete flex-grow-1">
-              <i class="bi bi-trash-fill"></i> Desactivar
-            </a>
-          </div>
+<!-- Grid de productos -->
+<div class="row g-3">
+  {% for producto in productos %}
+  <div class="col-md-4 col-lg-3">
+    <div class="card h-100 shadow-sm">
+      {% if producto.imagen %}
+      <img src="{{ producto.imagen.url }}" class="card-img-top" alt="{{ producto.nombre }}" style="height: 180px; object-fit: cover;">
+      {% else %}
+      <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 180px;">
+        <span class="text-muted fs-1">📦</span>
+      </div>
+      {% endif %}
+      <div class="card-body">
+        <h5 class="card-title">{{ producto.nombre }}</h5>
+        <p class="card-text text-muted small">{{ producto.descripcion|truncatechars:60 }}</p>
+        <div class="d-flex justify-content-between align-items-center">
+          <span class="h5 text-primary">${{ producto.precio_unitario }}</span>
+          <span class="badge {% if producto.stock <= 10 %}bg-danger{% else %}bg-secondary{% endif %}">
+            Stock: {{ producto.stock }}
+          </span>
         </div>
       </div>
-      {% empty %}
-      <div class="text-center text-muted py-5">
-        <div class="empty-state-icon mb-3">
-          <i class="bi bi-box-seam"></i>
+      <div class="card-footer bg-white border-top-0">
+        <div class="btn-group w-100">
+          <a href="{% url 'producto_editar' producto.pk %}" class="btn btn-sm btn-outline-primary">✏️ Editar</a>
+          <a href="{% url 'producto_eliminar' producto.pk %}" class="btn btn-sm btn-outline-danger">🗑️ Eliminar</a>
         </div>
-        <h5 class="fw-semibold mb-2">No hay productos registrados</h5>
-        <p class="mb-4 small">Comienza agregando tu primer producto</p>
-        <a href="{% url 'producto_nuevo' %}" class="btn btn-primary-gradient">
-          <i class="bi bi-plus-lg"></i> Nuevo Producto
-        </a>
       </div>
-      {% endfor %}
     </div>
   </div>
+  {% empty %}
+  <div class="col-12">
+    <div class="alert alert-warning">No hay productos registrados.</div>
+  </div>
+  {% endfor %}
 </div>
-
-<style>
-  /* ========== VARIABLES MODERNAS ========== */
-  :root {
-    --primary-start: #4F46E5;
-    --primary-end: #7C3AED;
-    --primary-dark: #4338CA;
-    --success: #10B981;
-    --warning: #F59E0B;
-    --danger: #EF4444;
-    --gray-bg: #F9FAFB;
-    --border-light: #E5E7EB;
-  }
-
-  /* ========== UTILIDADES GENERALES ========== */
-  .text-gradient {
-    background: linear-gradient(135deg, var(--primary-start), var(--primary-end));
-    background-clip: text;
-    -webkit-background-clip: text;
-    color: transparent;
-  }
-
-  .btn-primary-gradient {
-    background: linear-gradient(135deg, var(--primary-start), var(--primary-end));
-    border: none;
-    color: white;
-    padding: 0.6rem 1.2rem;
-    border-radius: 12px;
-    font-weight: 500;
-    transition: all 0.25s ease;
-    box-shadow: 0 2px 4px rgba(79, 70, 229, 0.2);
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
-
-  .btn-primary-gradient:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(79, 70, 229, 0.3);
-    color: white;
-    background: linear-gradient(135deg, var(--primary-dark), var(--primary-end));
-  }
-
-  .btn-outline-secondary {
-    border-radius: 10px;
-    padding: 0.6rem 1rem;
-    transition: all 0.2s ease;
-  }
-
-  .btn-outline-secondary:hover {
-    transform: translateY(-1px);
-  }
-
-  /* Glassmorphism */
-  .glass-card {
-    background: rgba(255, 255, 255, 0.96);
-    border-radius: 20px;
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.5);
-  }
-
-  /* ========== BARRA DE BÚSQUEDA ========== */
-  .search-input {
-    border-radius: 12px;
-    border: 1.5px solid var(--border-light);
-    padding: 0.7rem 1rem 0.7rem 2.5rem;
-    transition: all 0.2s ease;
-  }
-
-  .search-input:focus {
-    border-color: var(--primary-start);
-    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
-  }
-
-  .search-icon {
-    left: 1rem;
-    top: 50%;
-    transform: translateY(-50%);
-    color: #9CA3AF;
-    font-size: 1rem;
-  }
-
-  /* ========== TABLA DESKTOP ========== */
-  .table-modern {
-    border-collapse: separate;
-    border-spacing: 0;
-  }
-
-  .table-modern thead th {
-    background: #F8FAFC;
-    font-weight: 600;
-    font-size: 0.85rem;
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-    color: #4B5563;
-    padding: 1rem 0.75rem;
-    border-bottom: 2px solid var(--border-light);
-  }
-
-  .table-modern tbody td {
-    padding: 1rem 0.75rem;
-    border-bottom: 1px solid #F0F2F5;
-    vertical-align: middle;
-  }
-
-  .hover-row {
-    transition: background-color 0.2s ease;
-  }
-
-  .row-hover, .hover-row:hover {
-    background-color: #F9FAFF;
-  }
-
-  .text-primary-dark { color: var(--primary-dark); font-weight: 600; }
-  .text-amount { color: #065F46; font-weight: 700; }
-
-  /* Stock badges */
-  .stock-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3rem;
-    padding: 0.35rem 0.9rem;
-    border-radius: 40px;
-    font-size: 0.75rem;
-    font-weight: 600;
-  }
-
-  .stock-badge.low { background: #FEE2E2; color: #991B1B; }
-  .stock-badge.medium { background: #FEF3C7; color: #92400E; }
-  .stock-badge.high { background: #D1FAE5; color: #065F46; }
-
-  /* Status badges */
-  .status-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3rem;
-    padding: 0.35rem 0.9rem;
-    border-radius: 40px;
-    font-size: 0.75rem;
-    font-weight: 600;
-  }
-
-  .status-badge.active { background: #D1FAE5; color: #065F46; }
-  .status-badge.inactive { background: #F3F4F6; color: #6B7280; }
-
-  /* Botones acción */
-  .btn-action {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.4rem;
-    padding: 0.45rem 1rem;
-    border-radius: 8px;
-    font-size: 0.8rem;
-    font-weight: 500;
-    text-decoration: none;
-    transition: all 0.2s ease;
-    border: 1px solid transparent;
-  }
-
-  .btn-action.edit {
-    background: #EEF2FF;
-    color: var(--primary-start);
-    border-color: #E0E7FF;
-  }
-
-  .btn-action.edit:hover {
-    background: var(--primary-start);
-    color: white;
-    transform: translateY(-1px);
-  }
-
-  .btn-action.delete {
-    background: #FEF2F2;
-    color: var(--danger);
-    border-color: #FEE2E2;
-  }
-
-  .btn-action.delete:hover {
-    background: var(--danger);
-    color: white;
-    transform: translateY(-1px);
-  }
-
-  /* ========== TARJETAS MÓVIL ========== */
-  .product-card {
-    background: white;
-    border-radius: 16px;
-    padding: 1rem;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-    border: 1px solid var(--border-light);
-    transition: all 0.2s ease;
-  }
-
-  .product-card:hover {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-    transform: translateY(-2px);
-  }
-
-  .product-id {
-    font-size: 0.7rem;
-    color: #9CA3AF;
-    font-weight: 500;
-    letter-spacing: 0.5px;
-  }
-
-  .product-name {
-    font-size: 1rem;
-    font-weight: 700;
-    color: #1F2937;
-    margin-top: 0.25rem;
-  }
-
-  .product-card-body {
-    padding: 0.75rem 0;
-  }
-
-  .info-row {
-    margin-bottom: 0.5rem;
-  }
-
-  .info-label {
-    font-size: 0.7rem;
-    font-weight: 600;
-    color: #6B7280;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    display: block;
-    margin-bottom: 0.2rem;
-  }
-
-  .info-label i {
-    font-size: 0.7rem;
-    margin-right: 0.2rem;
-  }
-
-  .info-value {
-    font-size: 0.85rem;
-    display: block;
-  }
-
-  .info-value.price {
-    font-size: 1.1rem;
-    font-weight: 700;
-    color: #065F46;
-  }
-
-  .product-card-footer {
-    margin-top: 0.75rem;
-    padding-top: 0.75rem;
-    border-top: 1px solid var(--border-light);
-  }
-
-  /* Estado vacío */
-  .empty-state-icon {
-    font-size: 3.5rem;
-    color: #D1D5DB;
-    opacity: 0.5;
-  }
-
-  /* Animaciones */
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  .animate-fade {
-    animation: fadeIn 0.3s ease-out;
-  }
-
-  /* ========== RESPONSIVE ========== */
-  @media (max-width: 768px) {
-    .btn-primary-gradient {
-      padding: 0.5rem 1rem;
-      font-size: 0.9rem;
-    }
-    
-    .action-buttons {
-      flex-direction: column;
-      gap: 0.5rem !important;
-    }
-    
-    .btn-action {
-      width: 100%;
-      justify-content: center;
-    }
-  }
-
-  @media (max-width: 576px) {
-    .search-input {
-      font-size: 0.9rem;
-    }
-    
-    .product-card {
-      padding: 0.875rem;
-    }
-    
-    .product-name {
-      font-size: 0.95rem;
-    }
-  }
-
-  /* Scrollbar */
-  .table-responsive::-webkit-scrollbar {
-    height: 6px;
-  }
-  
-  .table-responsive::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 4px;
-  }
-  
-  .table-responsive::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
-    border-radius: 4px;
-  }
-</style>
-
-<!-- Bootstrap Icons (si no están incluidas en base.html) -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-
 {% endblock %}

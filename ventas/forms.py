@@ -18,18 +18,22 @@ class LoginForm(forms.Form):
     )
 
 
+# ventas/forms.py
+from django import forms
+from .models import Producto, Cliente, Venta
+
 class ProductoForm(forms.ModelForm):
     class Meta:
         model = Producto
-        fields = ['nombre', 'descripcion', 'precio_unitario', 'stock', 'activo']
+        fields = ['nombre', 'descripcion', 'precio_unitario', 'stock', 'imagen', 'activo']
         widgets = {
-            'nombre': forms.TextInput(attrs={'class': CSS}),
-            'descripcion': forms.Textarea(attrs={'class': CSS, 'rows': 3}),
-            'precio_unitario': forms.NumberInput(attrs={'class': CSS, 'step': '0.01'}),
-            'stock': forms.NumberInput(attrs={'class': CSS}),
+            'nombre': forms.TextInput(attrs={'class': 'form-control'}),
+            'descripcion': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'precio_unitario': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'stock': forms.NumberInput(attrs={'class': 'form-control'}),
+            'imagen': forms.ClearableFileInput(attrs={'class': 'form-control'}),
             'activo': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
-
 
 class ClienteForm(forms.ModelForm):
     class Meta:
