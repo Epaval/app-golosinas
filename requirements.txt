@@ -4,3 +4,4 @@ pymysql==1.1.1
 python-dotenv==1.0.1
 Pillow==11.0.0
 faker==30.0.0
+u(1f0+eatkc+$*3jz^rw486bzof1o@ti($j5l(me7=w=(mso@x

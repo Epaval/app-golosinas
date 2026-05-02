@@ -1,187 +1,638 @@
 {% extends 'ventas/base.html' %}
+{% load static %}
+
 {% block content %}
-<div class="container py-4">
-  <h2 class="mb-4">🛒 Nueva Venta</h2>
+<div class="container py-3 py-md-4">
+  <h2 class="mb-3 mb-md-4 fs-3 fs-md-2">🛒 Nueva Venta</h2>
 
   <form method="POST" id="ventaForm">
     {% csrf_token %}
 
-    <!-- 🟢 Datos Básicos -->
-    <div class="card p-3 mb-4">
-      <div class="row g-3">
-        <div class="col-md-8">
-          <label class="form-label">Cliente *</label>
+    <!-- Datos Básicos -->
+    <div class="card p-2 p-md-3 mb-3 mb-md-4">
+      <div class="row g-2 g-md-3">
+        <div class="col-12 col-md-8">
+          <label class="form-label small fw-bold">Cliente *</label>
           {{ form.cliente }}
           {% if form.cliente.errors %}
             <div class="text-danger small">{{ form.cliente.errors.0 }}</div>
           {% endif %}
         </div>
-        
       </div>
     </div>
 
-    <!-- 🟢 Selector de Producto -->
-    <div class="card p-3 mb-3">
-      <div class="row g-2 align-items-end">
-        <div class="col-md-6">
-          <label class="form-label">Buscar Producto</label>
-          <select id="productSelect" class="form-select">
-            <option value="">-- Selecciona un producto --</option>
-            {% for p in productos %}
-              <option value="{{ p.pk }}" data-price="{{ p.precio_unitario }}" data-stock="{{ p.stock }}">
-                {{ p.nombre }} - ${{ p.precio_unitario }} (Stock: {{ p.stock }})
-              </option>
-            {% endfor %}
-          </select>
+    <!-- Productos en Cards - Grid Responsive -->
+    <div class="mb-3 mb-md-4">
+      <h4 class="mb-2 mb-md-3 fs-5 fs-md-4">📦 Selecciona Productos</h4>
+      
+      <!-- Botón de búsqueda rápida -->
+      <div class="mb-3 d-md-none">
+        <input type="text" id="searchProducts" class="form-control" placeholder="🔍 Buscar producto...">
+      </div>
+      
+      <div class="row g-2 g-md-3" id="productsGrid">
+        {% for producto in productos %}
+        <div class="col-6 col-sm-4 col-md-4 col-lg-3 col-xl-2">
+          <div class="card h-100 product-card" 
+               data-product-id="{{ producto.id }}" 
+               data-product-name="{{ producto.nombre }}" 
+               data-product-price="{{ producto.precio_unitario }}" 
+               data-product-stock="{{ producto.stock }}"
+               data-product-name-lower="{{ producto.nombre|lower }}">
+            
+            <!-- Imagen del producto -->
+            <div class="product-image-wrapper">
+              {% if producto.imagen %}
+              <img src="{{ producto.imagen.url }}" class="card-img-top product-image" alt="{{ producto.nombre }}">
+              {% else %}
+              <div class="card-img-top bg-light d-flex align-items-center justify-content-center product-image">
+                <span class="text-muted fs-1">📦</span>
+              </div>
+              {% endif %}
+            </div>
+            
+            <div class="card-body p-2 p-md-3">
+              <h6 class="card-title mb-1 fs-6 fw-bold product-name">{{ producto.nombre|truncatechars:30 }}</h6>
+              <p class="card-text small text-muted mb-2 d-none d-sm-block">
+                {{ producto.descripcion|truncatechars:40 }}
+              </p>
+              <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-1">
+                <span class="h6 text-primary mb-0 fs-6">${{ producto.precio_unitario }}</span>
+                <span class="badge bg-secondary small">Stock: {{ producto.stock }}</span>
+              </div>
+              <div class="d-flex gap-1">
+                <input type="number" class="form-control form-control-sm product-qty" 
+                       value="1" min="1" max="{{ producto.stock }}" 
+                       style="width: 65px; font-size: 0.9rem;">
+                <button type="button" class="btn btn-success btn-sm btn-add-to-cart flex-grow-1">
+                  ➕
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
-        <div class="col-md-3">
-          <label class="form-label">Cantidad</label>
-          <input type="number" id="qtyInput" class="form-control" value="1" min="1">
+        {% empty %}
+        <div class="col-12">
+          <div class="alert alert-warning">No hay productos activos con stock disponible.</div>
         </div>
-        <div class="col-md-3">
-          <button type="button" id="addBtn" class="btn btn-success w-100">➕ Agregar</button>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Tabla del Carrito - Desktop -->
+    <div class="card shadow-sm d-none d-md-block">
+      <div class="card-header bg-white py-2 py-md-3">
+        <h5 class="mb-0 fs-6 fs-md-5">🛍️ Carrito de compras <span id="cartCount" class="badge bg-secondary ms-2">0</span></h5>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-bordered table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Producto</th>
+                <th class="text-center" style="width: 100px;">Precio</th>
+                <th class="text-center" style="width: 130px;">Cantidad</th>
+                <th class="text-center" style="width: 100px;">Subtotal</th>
+                <th class="text-center" style="width: 80px;">Acción</th>
+              </tr>
+            </thead>
+            <tbody id="cartBody">
+              <tr id="emptyCartRow">
+                <td colspan="5" class="text-center text-muted py-4">
+                  🛒 No hay productos agregados
+                </td>
+              </tr>
+            </tbody>
+            <tfoot class="table-light">
+              <tr>
+                <td colspan="3" class="text-end fw-bold">TOTAL:</td>
+                <td class="text-center fw-bold text-success fs-5" id="grandTotal">$0.00</td>
+                <td></td>
+              </tr>
+            </tfoot>
+           </table>
         </div>
       </div>
     </div>
 
-    <!-- 🟢 Tabla Dinámica -->
-    <div class="table-responsive mb-3">
-      <table class="table table-bordered table-hover align-middle">
-        <thead class="table-light">
-          <tr>
-            <th>Producto</th>
-            <th class="text-center">Precio</th>
-            <th class="text-center">Cantidad</th>
-            <th class="text-center">Subtotal</th>
-            <th class="text-center">Acción</th>
-          </tr>
-        </thead>
-        <tbody id="cartBody"></tbody>
-        <tfoot class="table-light">
-          <tr>
-            <td colspan="3" class="text-end fw-bold fs-5">TOTAL:</td>
-            <td class="text-center fw-bold text-success fs-5" id="grandTotal">$0.00</td>
-            <td></td>
-          </tr>
-        </tfoot>
-      </table>
-    </div>
-
-    <!-- 🔑 Inputs ocultos para Django (formato simple) -->
+    <!-- Inputs ocultos para Django -->
     <div id="hiddenInputs"></div>
 
-    <div class="d-flex gap-2">
-      <button type="submit" class="btn btn-primary px-4">💾 Guardar Venta</button>
-      <a href="{% url 'venta_lista' %}" class="btn btn-outline-secondary">Cancelar</a>
+    <div class="d-flex gap-2 mt-3 mt-md-4">
+      <button type="submit" class="btn btn-primary px-3 px-md-4 py-2">💾 Guardar Venta</button>
+      <a href="{% url 'venta_lista' %}" class="btn btn-outline-secondary px-3 px-md-4">Cancelar</a>
     </div>
   </form>
 </div>
+
+<!-- ========== BOTÓN FLOTANTE DEL CARRITO (MÓVIL) ========== -->
+<div class="d-md-none">
+  <button type="button" 
+          id="cartFabButton" 
+          class="btn btn-primary rounded-circle shadow-lg position-fixed"
+          style="bottom: 20px; right: 20px; width: 56px; height: 56px; z-index: 1000; display: none;">
+    <div class="position-relative">
+      <span style="font-size: 24px;">🛒</span>
+      <span id="cartFabBadge" 
+            class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+            style="font-size: 10px;">
+        0
+      </span>
+    </div>
+  </button>
+</div>
+
+<!-- ========== MODAL DEL CARRITO (MÓVIL) ========== -->
+<div class="modal fade" id="cartModal" tabindex="-1" data-bs-backdrop="static">
+  <div class="modal-dialog modal-dialog-scrollable modal-fullscreen-sm-down">
+    <div class="modal-content">
+      <div class="modal-header bg-white py-3">
+        <h5 class="modal-title fs-5">
+          🛍️ Carrito de compras 
+          <span id="modalCartCount" class="badge bg-secondary ms-2">0</span>
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      
+      <div class="modal-body p-0" id="cartModalBody">
+        <div class="text-center text-muted py-5" id="modalEmptyCart">
+          🛒 No hay productos agregados
+        </div>
+        <div id="modalCartItems"></div>
+      </div>
+      
+      <div class="modal-footer bg-light">
+        <div class="w-100">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <span class="fw-bold fs-6">Total:</span>
+            <span class="fw-bold text-success fs-4" id="modalGrandTotal">$0.00</span>
+          </div>
+          <button type="button" class="btn btn-primary w-100 py-3" id="modalCheckoutBtn">
+            💾 Finalizar venta
+          </button>
+          <button type="button" class="btn btn-outline-secondary w-100 mt-2" data-bs-dismiss="modal">
+            Seguir comprando
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  /* Estilos responsivos */
+  .product-card {
+    transition: transform 0.2s, box-shadow 0.2s;
+    cursor: pointer;
+    border: 1px solid #e0e0e0;
+  }
+  
+  .product-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  }
+  
+  .product-image {
+    height: 120px;
+    object-fit: cover;
+    border-bottom: 1px solid #eee;
+  }
+  
+  .product-image-wrapper {
+    overflow: hidden;
+  }
+  
+  /* Botón flotante */
+  #cartFabButton {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  
+  #cartFabButton:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.3);
+  }
+  
+  #cartFabButton:active {
+    transform: scale(0.95);
+  }
+  
+  /* Animación del badge */
+  #cartFabBadge {
+    animation: popIn 0.2s ease-out;
+  }
+  
+  @keyframes popIn {
+    0% {
+      transform: scale(0);
+    }
+    80% {
+      transform: scale(1.2);
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
+  
+  /* Modal fullscreen en móvil */
+  .modal-fullscreen-sm-down {
+    margin: 0;
+  }
+  
+  @media (max-width: 576px) {
+    .modal-fullscreen-sm-down {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      margin: 0;
+    }
+    
+    .modal-fullscreen-sm-down .modal-content {
+      border-radius: 0;
+      height: 100%;
+    }
+  }
+  
+  /* Items del modal */
+  .cart-modal-item {
+    background: white;
+    border-bottom: 1px solid #eee;
+    padding: 12px;
+    transition: background-color 0.2s;
+  }
+  
+  .cart-modal-item:active {
+    background-color: #f8f9fa;
+  }
+  
+  /* Para móviles más pequeños */
+  @media (max-width: 576px) {
+    .product-image {
+      height: 100px;
+    }
+    .product-card .card-body {
+      padding: 0.5rem;
+    }
+    .product-name {
+      font-size: 0.8rem;
+    }
+    .btn-add-to-cart {
+      font-size: 0.8rem;
+      padding: 0.25rem 0.5rem;
+    }
+    .product-qty {
+      font-size: 0.8rem;
+      padding: 0.25rem;
+    }
+  }
+  
+  /* Animaciones */
+  .btn-add-to-cart:active {
+    transform: scale(0.95);
+  }
+  
+  /* Scroll suave */
+  html {
+    scroll-behavior: smooth;
+  }
+</style>
 {% endblock %}
 
 {% block extra_js %}
 <script>
   document.addEventListener('DOMContentLoaded', function() {
-    const cart = {}; // { productId: { id, name, price, qty } }
-    const productSelect = document.getElementById('productSelect');
-    const qtyInput = document.getElementById('qtyInput');
-    const addBtn = document.getElementById('addBtn');
+    // Carrito: { productId: { id, name, price, qty, stock } }
+    let cart = {};
+    
+    // Elementos DOM
     const cartBody = document.getElementById('cartBody');
     const grandTotal = document.getElementById('grandTotal');
     const hiddenInputs = document.getElementById('hiddenInputs');
-
-    // ✅ Agregar producto
-    addBtn.addEventListener('click', function() {
-      const opt = productSelect.options[productSelect.selectedIndex];
-      const pid = opt.value;
-      if (!pid) return alert('⚠️ Selecciona un producto');
-
-      const qty = parseInt(qtyInput.value) || 1;
-      const stock = parseInt(opt.dataset.stock);
-      const price = parseFloat(opt.dataset.price);
-
-      if (qty <= 0) return alert('⚠️ Cantidad debe ser mayor a 0');
-      if (qty > stock) return alert(`⚠️ Stock insuficiente. Disponible: ${stock}`);
-
-      // 🔁 Si ya existe, suma cantidad
-      if (cart[pid]) {
-        const newQty = cart[pid].qty + qty;
-        if (newQty > stock) return alert(`⚠️ No puedes superar el stock (${stock})`);
-        cart[pid].qty = newQty;
-      } else {
-        cart[pid] = { 
-          id: pid, 
-          name: opt.text.split(' - $')[0], 
-          price: price, 
-          qty: qty 
-        };
+    const emptyCartRow = document.getElementById('emptyCartRow');
+    const cartCount = document.getElementById('cartCount');
+    
+    // Elementos del modal
+    let cartModal;
+    const fabButton = document.getElementById('cartFabButton');
+    const modalCartItems = document.getElementById('modalCartItems');
+    const modalEmptyCart = document.getElementById('modalEmptyCart');
+    const modalGrandTotal = document.getElementById('modalGrandTotal');
+    const modalCartCount = document.getElementById('modalCartCount');
+    const cartFabBadge = document.getElementById('cartFabBadge');
+    
+    // Inicializar modal de Bootstrap
+    if (typeof bootstrap !== 'undefined') {
+      cartModal = new bootstrap.Modal(document.getElementById('cartModal'));
+    }
+    
+    // Función para mostrar/ocultar botón flotante
+    function toggleFabButton() {
+      if (fabButton) {
+        const itemsCount = Object.values(cart).length;
+        fabButton.style.display = itemsCount > 0 ? 'flex' : 'none';
       }
-      renderCart();
-      productSelect.value = '';
-      qtyInput.value = 1;
-      productSelect.focus();
-    });
-
-    // 🗑️ Eliminar fila
-    window.removeProduct = function(pid) {
-      delete cart[pid];
-      renderCart();
-    };
-
-    // 📊 Renderizar tabla
-    function renderCart() {
-      cartBody.innerHTML = '';
-      let total = 0;
+    }
+    
+    // Renderizar contenido del modal
+    function renderModal() {
+      if (!modalCartItems) return;
+      
       const items = Object.values(cart);
-
+      
+      if (items.length === 0) {
+        if (modalEmptyCart) modalEmptyCart.style.display = 'block';
+        modalCartItems.innerHTML = '';
+        if (modalGrandTotal) modalGrandTotal.textContent = '$0.00';
+        if (modalCartCount) modalCartCount.textContent = '0';
+        if (cartFabBadge) cartFabBadge.textContent = '0';
+        return;
+      }
+      
+      if (modalEmptyCart) modalEmptyCart.style.display = 'none';
+      
+      let total = 0;
+      
+      modalCartItems.innerHTML = items.map(item => {
+        const sub = item.price * item.qty;
+        total += sub;
+        return `
+          <div class="cart-modal-item" data-id="${item.id}">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+              <div class="flex-grow-1">
+                <strong class="fs-6">${escapeHtml(item.name)}</strong>
+                <div class="small text-muted">$${item.price.toFixed(2)} c/u</div>
+              </div>
+              <button type="button" class="btn btn-sm btn-outline-danger ms-2 btn-remove-modal" data-id="${item.id}">
+                🗑️
+              </button>
+            </div>
+            <div class="d-flex justify-content-between align-items-center">
+              <div class="d-flex align-items-center gap-2">
+                <button type="button" class="btn btn-outline-secondary btn-sm btn-decrease-modal" 
+                        data-id="${item.id}" style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">
+                  −
+                </button>
+                <span class="fw-bold mx-2" style="min-width: 35px; text-align: center;">${item.qty}</span>
+                <button type="button" class="btn btn-outline-secondary btn-sm btn-increase-modal" 
+                        data-id="${item.id}" style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">
+                  +
+                </button>
+              </div>
+              <div class="fw-bold text-primary fs-6">$${sub.toFixed(2)}</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+      
+      if (modalGrandTotal) modalGrandTotal.textContent = `$${total.toFixed(2)}`;
+      if (modalCartCount) modalCartCount.textContent = items.length;
+      if (cartFabBadge) cartFabBadge.textContent = items.length;
+      
+      // Eventos del modal
+      document.querySelectorAll('.btn-decrease-modal').forEach(btn => {
+        btn.addEventListener('click', () => updateQuantity(btn.dataset.id, -1));
+      });
+      document.querySelectorAll('.btn-increase-modal').forEach(btn => {
+        btn.addEventListener('click', () => updateQuantity(btn.dataset.id, 1));
+      });
+      document.querySelectorAll('.btn-remove-modal').forEach(btn => {
+        btn.addEventListener('click', () => removeProduct(btn.dataset.id));
+      });
+    }
+    
+    // Actualizar contador del carrito
+    function updateCartCount() {
+      const count = Object.values(cart).reduce((sum, item) => sum + item.qty, 0);
+      if (cartCount) cartCount.textContent = count;
+    }
+    
+    // Función para actualizar la tabla del carrito (desktop)
+    function renderCartDesktop() {
+      if (!cartBody) return;
+      
+      const items = Object.values(cart);
+      cartBody.innerHTML = '';
+      
+      if (items.length === 0) {
+        const emptyRow = document.createElement('tr');
+        emptyRow.id = 'emptyCartRow';
+        emptyRow.innerHTML = '<td colspan="5" class="text-center text-muted py-4">🛒 No hay productos agregados</td>';
+        cartBody.appendChild(emptyRow);
+        grandTotal.textContent = '$0.00';
+        return;
+      }
+      
+      let total = 0;
+      
       items.forEach(item => {
         const sub = item.price * item.qty;
         total += sub;
         const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td>${item.name}</td>
+          <td><strong>${escapeHtml(item.name)}</strong></td>
           <td class="text-center">$${item.price.toFixed(2)}</td>
-          <td class="text-center fw-bold">${item.qty}</td>
+          <td class="text-center">
+            <div class="btn-group btn-group-sm" role="group">
+              <button type="button" class="btn btn-outline-secondary btn-decrease-qty" data-id="${item.id}">-</button>
+              <span class="btn btn-light disabled" style="min-width: 50px;">${item.qty}</span>
+              <button type="button" class="btn btn-outline-secondary btn-increase-qty" data-id="${item.id}">+</button>
+            </div>
+          </td>
           <td class="text-center">$${sub.toFixed(2)}</td>
           <td class="text-center">
-            <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeProduct('${item.id}')">🗑️</button>
+            <button type="button" class="btn btn-sm btn-outline-danger btn-remove-product" data-id="${item.id}">
+              🗑️
+            </button>
           </td>
         `;
         cartBody.appendChild(tr);
       });
-
+      
       grandTotal.textContent = `$${total.toFixed(2)}`;
-      syncHiddenInputs(items);
+      
+      // Agregar eventos a los botones desktop
+      document.querySelectorAll('.btn-decrease-qty').forEach(btn => {
+        btn.addEventListener('click', () => updateQuantity(btn.dataset.id, -1));
+      });
+      document.querySelectorAll('.btn-increase-qty').forEach(btn => {
+        btn.addEventListener('click', () => updateQuantity(btn.dataset.id, 1));
+      });
+      document.querySelectorAll('.btn-remove-product').forEach(btn => {
+        btn.addEventListener('click', () => removeProduct(btn.dataset.id));
+      });
     }
-
-    // 🔗 Generar inputs ocultos para Django (formato simple: producto_id[], cantidad[])
+    
+    function updateQuantity(productId, delta) {
+      if (!cart[productId]) return;
+      const newQty = cart[productId].qty + delta;
+      const maxStock = cart[productId].stock;
+      
+      if (newQty < 1) return;
+      if (newQty > maxStock) {
+        alert(`⚠️ Stock máximo disponible: ${maxStock}`);
+        return;
+      }
+      
+      cart[productId].qty = newQty;
+      renderAll();
+    }
+    
+    function removeProduct(productId) {
+      delete cart[productId];
+      renderAll();
+    }
+    
+    function addToCart(productId, name, price, stock, qty) {
+      if (qty > stock) {
+        alert(`⚠️ Stock máximo disponible: ${stock}`);
+        return false;
+      }
+      
+      if (cart[productId]) {
+        const newQty = cart[productId].qty + qty;
+        if (newQty > stock) {
+          alert(`⚠️ Stock máximo disponible: ${stock}`);
+          return false;
+        }
+        cart[productId].qty = newQty;
+      } else {
+        cart[productId] = {
+          id: productId,
+          name: name,
+          price: parseFloat(price),
+          qty: qty,
+          stock: stock
+        };
+      }
+      renderAll();
+      return true;
+    }
+    
+    function renderAll() {
+      renderCartDesktop();
+      renderModal();
+      syncHiddenInputs(Object.values(cart));
+      updateCartCount();
+      toggleFabButton();
+    }
+    
     function syncHiddenInputs(items) {
+      if (!hiddenInputs) return;
       hiddenInputs.innerHTML = '';
       items.forEach(item => {
-        // Input para producto_id[]
         const pidInput = document.createElement('input');
         pidInput.type = 'hidden';
         pidInput.name = 'producto_id[]';
         pidInput.value = item.id;
         hiddenInputs.appendChild(pidInput);
         
-        // Input para cantidad[]
-        const qtyInputHidden = document.createElement('input');
-        qtyInputHidden.type = 'hidden';
-        qtyInputHidden.name = 'cantidad[]';
-        qtyInputHidden.value = item.qty;
-        hiddenInputs.appendChild(qtyInputHidden);
+        const qtyInput = document.createElement('input');
+        qtyInput.type = 'hidden';
+        qtyInput.name = 'cantidad[]';
+        qtyInput.value = item.qty;
+        hiddenInputs.appendChild(qtyInput);
       });
     }
-
-    // ✅ Validación al enviar
-    document.getElementById('ventaForm').addEventListener('submit', function(e) {
-      if (Object.keys(cart).length === 0) {
-        e.preventDefault();
-        alert('⚠️ Debes agregar al menos 1 producto.');
-        return false;
-      }
-      // Los inputs ocultos ya están sincronizados, Django los recibirá como listas
+    
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+    
+    // Evento para abrir modal al hacer clic en FAB
+    if (fabButton) {
+      fabButton.addEventListener('click', function() {
+        if (cartModal) cartModal.show();
+      });
+    }
+    
+    // Evento para botón checkout del modal
+    const modalCheckoutBtn = document.getElementById('modalCheckoutBtn');
+    if (modalCheckoutBtn) {
+      modalCheckoutBtn.addEventListener('click', function() {
+        if (Object.keys(cart).length === 0) {
+          alert('⚠️ Debes agregar al menos un producto.');
+          return;
+        }
+        if (cartModal) cartModal.hide();
+        document.getElementById('ventaForm').dispatchEvent(new Event('submit'));
+      });
+    }
+    
+    // Eventos para agregar productos
+    document.querySelectorAll('.btn-add-to-cart').forEach(btn => {
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        const card = this.closest('.product-card');
+        if (!card) return;
+        
+        const productId = card.dataset.productId;
+        const productName = card.dataset.productName;
+        const productPrice = card.dataset.productPrice;
+        const productStock = parseInt(card.dataset.productStock);
+        const qtyInput = card.querySelector('.product-qty');
+        const qty = parseInt(qtyInput?.value) || 1;
+        
+        if (qty < 1) {
+          alert('⚠️ La cantidad debe ser mayor a 0');
+          return;
+        }
+        
+        if (qty > productStock) {
+          alert(`⚠️ Stock máximo disponible: ${productStock}`);
+          return;
+        }
+        
+        addToCart(productId, productName, productPrice, productStock, qty);
+        if (qtyInput) qtyInput.value = 1;
+        
+        // Feedback visual
+        card.style.transform = 'scale(0.98)';
+        setTimeout(() => {
+          card.style.transform = '';
+        }, 150);
+      });
     });
+    
+    // Búsqueda de productos (móvil)
+    const searchInput = document.getElementById('searchProducts');
+    if (searchInput) {
+      searchInput.addEventListener('input', function(e) {
+        const searchTerm = e.target.value.toLowerCase();
+        document.querySelectorAll('.product-card').forEach(card => {
+          const productName = card.dataset.productName?.toLowerCase() || '';
+          const cardCol = card.closest('[class*="col-"]');
+          if (cardCol) {
+            cardCol.style.display = productName.includes(searchTerm) ? '' : 'none';
+          }
+        });
+      });
+    }
+    
+    // Clic en tarjeta para agregar
+    document.querySelectorAll('.product-card').forEach(card => {
+      card.style.cursor = 'pointer';
+      card.addEventListener('click', function(e) {
+        if (e.target.closest('.btn-add-to-cart') || e.target.closest('.product-qty')) return;
+        const btn = this.querySelector('.btn-add-to-cart');
+        if (btn) btn.click();
+      });
+    });
+    
+    // Validar envío
+    const ventaForm = document.getElementById('ventaForm');
+    if (ventaForm) {
+      ventaForm.addEventListener('submit', function(e) {
+        if (Object.keys(cart).length === 0) {
+          e.preventDefault();
+          alert('⚠️ Debes agregar al menos un producto a la venta.');
+          return false;
+        }
+      });
+    }
   });
 </script>
 {% endblock %}
