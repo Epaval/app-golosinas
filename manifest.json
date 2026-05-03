@@ -1,0 +1,13 @@
+{
+  "background_color": "#be3cbd",
+  "dir": "ltr",
+  "display": "standalone",
+  "name": "Antojitos",
+  "orientation": "any",
+  "scope": "/",
+  "short_name": "Antojitos",
+  "start_url": "/",
+  "theme_color": "#f353b4",
+  "id": "app-antojitos",
+  "description": "Aplicación para la venta de golosinas"
+} 
