@@ -379,7 +379,7 @@ def venta_lista(request):
     return render(request, 'ventas/venta_lista.html', {'ventas': ventas})
 
 
-@login_required
+
 def venta_nueva(request):
     form = VentaForm(request.POST or None)
     

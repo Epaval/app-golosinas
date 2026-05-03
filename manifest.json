@@ -1,3 +1,4 @@
+  GNU nano 7.2                                              manifest.json                                                       
 {
   "background_color": "#be3cbd",
   "dir": "ltr",
@@ -5,9 +6,23 @@
   "name": "Antojitos",
   "orientation": "any",
   "scope": "/",
-  "short_name": "Antojitos",
-  "start_url": "/",
+  "start_url": "/venta/nueva/",
   "theme_color": "#f353b4",
   "id": "app-antojitos",
-  "description": "Aplicación para la venta de golosinas"
-} 
+  "description": "Aplicación para la venta de golosinas",
+  "icons": [
+    {
+      "src": "/static/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/static/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
+
+
+
