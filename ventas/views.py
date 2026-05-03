@@ -6,6 +6,7 @@ from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.http import JsonResponse
 from django.db import transaction
 from django.utils import timezone
+from django.utils.timezone import make_aware
 from django.contrib import messages
 from django.db.models import Q, Sum, Count
 from datetime import timedelta, datetime, time   
@@ -14,6 +15,10 @@ from .forms import (
     ProductoForm, ClienteForm, VentaForm,
      LoginForm
 )
+from django.views.decorators.csrf import csrf_exempt
+from decimal import Decimal
+import json
+from utils.bcv import get_usd_rate
 
 
 # ─── Autenticación ─────────────────────────────────────────────────────────────
@@ -226,6 +231,138 @@ def cliente_eliminar(request, pk):
     return render(request, 'ventas/confirmar_eliminar.html',
                   {'objeto': cliente, 'tipo': 'cliente'})
 
+@login_required
+def resumen_cliente_ventas(request):
+    """
+    Vista para resumen de ventas por cliente con filtros de período y estado de pago
+    """
+    from decimal import Decimal
+    from utils.bcv import get_usd_rate
+    
+    # Obtener parámetros de filtro
+    cliente_id = request.GET.get('cliente', '')
+    fecha_desde = request.GET.get('fecha_desde', '')
+    fecha_hasta = request.GET.get('fecha_hasta', '')
+    estado_pago = request.GET.get('estado_pago', '')
+    
+    # Query base
+    ventas = Venta.objects.select_related('cliente', 'usuario').prefetch_related('detalles__producto')
+    
+    # Inicializar variables de fecha
+    fecha_desde_obj = None
+    fecha_hasta_obj = None
+    
+    # Aplicar filtro por cliente
+    if cliente_id:
+        ventas = ventas.filter(cliente_id=cliente_id)
+    
+    # Aplicar filtro por fecha
+    if fecha_desde:
+        try:
+            fecha_desde_obj = datetime.strptime(fecha_desde, '%Y-%m-%d')
+            fecha_desde_inicio = make_aware(datetime.combine(fecha_desde_obj, datetime.min.time()))
+            ventas = ventas.filter(fecha__gte=fecha_desde_inicio)
+        except ValueError:
+            pass
+    
+    if fecha_hasta:
+        try:
+            fecha_hasta_obj = datetime.strptime(fecha_hasta, '%Y-%m-%d')
+            fecha_hasta_fin = make_aware(datetime.combine(fecha_hasta_obj, datetime.max.time()))
+            ventas = ventas.filter(fecha__lte=fecha_hasta_fin)
+        except ValueError:
+            pass
+    
+    # Aplicar filtro por estado de pago
+    if estado_pago in ['pendiente', 'pagado', 'parcial']:
+        ventas = ventas.filter(estado_pago=estado_pago)
+    
+    # Obtener tasa BCV actual (para ventas sin tasa guardada)
+    tasa_bcv_actual = get_usd_rate()
+    
+    # Ordenar por cliente y fecha
+    ventas = ventas.order_by('cliente__nombre', '-fecha')
+    
+    # Agrupar ventas por cliente
+    clientes_resumen = {}
+    total_global_usd = 0
+    total_global_bs = 0
+    total_ventas_global = 0
+    tasa_utilizada = tasa_bcv_actual
+    
+    for venta in ventas:
+        cliente_nombre = venta.cliente.nombre_completo
+        
+        # Calcular total en bolívares si no está guardado
+        if venta.total_bs:
+            total_bs_venta = float(venta.total_bs)
+        else:
+            # Usar la tasa actual para calcular
+            total_bs_venta = float(venta.total) * float(tasa_bcv_actual)
+        
+        if cliente_nombre not in clientes_resumen:
+            clientes_resumen[cliente_nombre] = {
+                'cliente_id': venta.cliente.id,
+                'cliente': venta.cliente,
+                'ventas': [],
+                'total_usd': 0,
+                'total_bs': 0,
+                'cantidad_ventas': 0,
+                'pendientes': 0,
+                'parciales': 0,
+                'pagados': 0,
+            }
+        
+        # Agregar venta con el total_bs calculado
+        venta_data = {
+            'pk': venta.pk,
+            'id': venta.pk,
+            'fecha': venta.fecha,
+            'total': venta.total,
+            'total_bs': total_bs_venta,
+            'estado_pago': venta.estado_pago,
+            'estado_pago_display': venta.get_estado_pago_display(),
+        }
+        
+        clientes_resumen[cliente_nombre]['ventas'].append(venta_data)
+        clientes_resumen[cliente_nombre]['total_usd'] += float(venta.total)
+        clientes_resumen[cliente_nombre]['total_bs'] += total_bs_venta
+        clientes_resumen[cliente_nombre]['cantidad_ventas'] += 1
+        
+        # Contar por estado
+        if venta.estado_pago == 'pendiente':
+            clientes_resumen[cliente_nombre]['pendientes'] += 1
+        elif venta.estado_pago == 'parcial':
+            clientes_resumen[cliente_nombre]['parciales'] += 1
+        elif venta.estado_pago == 'pagado':
+            clientes_resumen[cliente_nombre]['pagados'] += 1
+        
+        total_global_usd += float(venta.total)
+        total_global_bs += total_bs_venta
+        total_ventas_global += 1
+    
+    clientes_lista = Cliente.objects.filter(activo=True).order_by('nombre')
+    
+    context = {
+        'resumen_clientes': clientes_resumen,
+        'clientes_lista': clientes_lista,
+        'cliente_seleccionado': cliente_id,
+        'fecha_desde': fecha_desde,
+        'fecha_hasta': fecha_hasta,
+        'estado_pago_seleccionado': estado_pago,
+        'fecha_desde_obj': fecha_desde_obj,
+        'fecha_hasta_obj': fecha_hasta_obj,
+        'total_global_usd': total_global_usd,
+        'total_global_bs': total_global_bs,
+        'total_ventas_global': total_ventas_global,
+        'total_clientes_global': len(clientes_resumen),
+        'tasa_bcv_actual': float(tasa_bcv_actual),
+    }
+    
+    return render(request, 'ventas/resumen_cliente_ventas.html', context)
+ 
+
+
 
 # ─── Ventas ────────────────────────────────────────────────────────────────────
 
@@ -371,3 +508,46 @@ def venta_cambiar_pago_ajax(request, venta_pk):
         'label': labels[nuevo_estado],
         'venta_id': venta.pk
     })
+
+
+# ─── API BCV ───────────────────────────────────────────────────────────────────
+
+@login_required
+def api_bcv_rate(request):
+    """Endpoint para obtener la tasa actual via AJAX"""
+    try:
+        rate = get_usd_rate()
+        return JsonResponse({
+            'usd_rate': float(rate),
+            'success': True
+        })
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+@login_required
+@require_POST
+def venta_guardar_tasa(request, pk):
+    """Guarda la tasa BCV en una venta y calcula el total en Bs"""
+    try:
+        venta = get_object_or_404(Venta, pk=pk)
+        data = json.loads(request.body)
+        tasa = Decimal(str(data.get('tasa')))
+        
+        venta.tasa_bcv = tasa
+        venta.total_usd = venta.total
+        venta.total_bs = venta.total * tasa
+        venta.save(update_fields=['tasa_bcv', 'total_usd', 'total_bs'])
+        
+        return JsonResponse({
+            'success': True,
+            'total_bs': float(venta.total_bs),
+            'tasa': float(tasa)
+        })
+    except Venta.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Venta no encontrada'}, status=404)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)

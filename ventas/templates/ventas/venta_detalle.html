@@ -2,8 +2,18 @@
 {% block title %}Venta #{{ venta.pk }}{% endblock %}
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-  <h4 class="fw-bold mb-0">🧾 Venta {{ venta.pk }}</h4>
-  <a href="{% url 'venta_lista' %}" class="btn btn-outline-secondary">← Regresar</a>
+  <h4 class="fw-bold mb-0">🧾 Venta #{{ venta.pk }}</h4>
+  <div>
+    <button type="button" 
+        id="copiarVentaBtn" 
+        class="btn btn-sm btn-success me-2"
+        data-bs-toggle="tooltip"
+        data-bs-placement="top"
+        title="Copiar mensaje de venta">
+  📋 Copiar venta
+</button>
+    <a href="{% url 'venta_lista' %}" class="btn btn-outline-secondary">← Regresar</a>
+  </div>
 </div>
 
 <div class="row g-3">
@@ -12,38 +22,329 @@
       <h6 class="fw-bold mb-3">Información</h6>
       <p><strong>Cliente:</strong> {{ venta.cliente }}</p>
       <p><strong>Fecha:</strong> {{ venta.fecha|date:"d/m/Y H:i" }}</p>
-      <p><strong>Estado:</strong> <span class="badge badge-{{ venta.estado }}">{{ venta.get_estado_display }}</span></p>
+      <p><strong>Estado:</strong> 
+        <span class="badge 
+          {% if venta.estado == 'completada' %}bg-success
+          {% elif venta.estado == 'pendiente' %}bg-warning
+          {% else %}bg-secondary{% endif %}">
+          {{ venta.get_estado_display }}
+        </span>
+      </p>
       <p><strong>Registró:</strong> {{ venta.usuario.username }}</p>
       {% if venta.notas %}<p><strong>Notas:</strong> {{ venta.notas }}</p>{% endif %}
       <hr>
-      <p class="fs-4 fw-bold text-success mb-0">Total: ${{ venta.total }}</p>
+      
+      <!-- Totales en USD y Bs con tasa BCV -->
+      <div class="mb-3">
+        <p class="fs-4 fw-bold text-success mb-0">Total: ${{ venta.total|floatformat:2 }}</p>
+        {% if venta.tasa_bcv %}
+          <p class="mb-0 text-muted small">Tasa BCV: {{ venta.tasa_bcv|floatformat:2 }} Bs/USD</p>
+          <p class="h4 fw-bold text-primary mt-2" id="totalBsDisplay">Bs {{ venta.total_bs|floatformat:2 }}</p>
+        {% else %}
+          <div class="mt-2">
+            <button type="button" id="calcularBsBtn" class="btn btn-sm btn-info">
+              💱 Calcular en Bolívares
+            </button>
+            <div id="resultadoBs" class="mt-2"></div>
+          </div>
+        {% endif %}
+      </div>
+      
+      <hr>
+      <small class="text-muted">Venta registrada el {{ venta.fecha|date:"d/m/Y H:i" }}</small>
     </div>
   </div>
+  
   <div class="col-md-8">
     <div class="card p-4">
       <h6 class="fw-bold mb-3">Productos vendidos</h6>
-      <table class="table">
-        <thead class="table-light">
-          <tr><th>Producto</th><th class="text-center">Cantidad</th><th class="text-end">Precio unit.</th><th class="text-end">Subtotal</th></tr>
-        </thead>
-        <tbody>
-          {% for d in detalles %}
-          <tr>
-            <td>{{ d.producto.nombre }}</td>
-            <td class="text-center">{{ d.cantidad }}</td>
-            <td class="text-end">${{ d.precio_unitario }}</td>
-            <td class="text-end fw-semibold">${{ d.subtotal }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-        <tfoot>
-          <tr class="table-light">
-            <td colspan="3" class="fw-bold text-end">TOTAL</td>
-            <td class="fw-bold text-end text-success fs-5">${{ venta.total }}</td>
-          </tr>
-        </tfoot>
-      </table>
+      <div class="table-responsive">
+        <table class="table table-striped" id="tablaProductos">
+          <thead class="table-light">
+            <tr>
+              <th>Producto</th>
+              <th class="text-center">Cantidad</th>
+              <th class="text-end">Precio unit. (USD)</th>
+              <th class="text-end">Subtotal (USD)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for d in detalles %}
+            <tr>
+              <td>{{ d.producto.nombre }}</td>
+              <td class="text-center">{{ d.cantidad }}</td>
+              <td class="text-end">${{ d.precio_unitario|floatformat:2 }}</td>
+              <td class="text-end fw-semibold">${{ d.subtotal|floatformat:2 }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+          <tfoot>
+            <tr class="table-light">
+              <td colspan="3" class="fw-bold text-end">TOTAL USD</td>
+              <td class="fw-bold text-end text-success fs-5">${{ venta.total|floatformat:2 }}</td>
+            </tr>
+            {% if venta.tasa_bcv %}
+            <tr class="table-info">
+              <td colspan="3" class="fw-bold text-end">TOTAL Bs</td>
+              <td class="fw-bold text-end text-primary fs-5">Bs {{ venta.total_bs|floatformat:2 }}</td>
+            </tr>
+            <tr class="table-secondary">
+              <td colspan="3" class="text-end small">Tasa BCV</td>
+              <td class="text-end small">{{ venta.tasa_bcv|floatformat:2 }} Bs/USD</td>
+            </tr>
+            {% endif %}
+          </tfoot>
+        </table>
+      </div>
     </div>
   </div>
 </div>
+
+<!-- Modal para mostrar cálculo en tiempo real -->
+<div class="modal fade" id="tasaModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">💱 Tasa BCV del día</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body text-center">
+        <div class="spinner-border text-primary" id="tasaSpinner"></div>
+        <div id="tasaContenido" style="display: none;">
+          <p class="mb-2">Tasa oficial USD/BS</p>
+          <p class="display-6 fw-bold text-primary" id="tasaValor">--</p>
+          <p class="mb-2 mt-3">Total en Bolívares</p>
+          <p class="h2 fw-bold text-success" id="totalBsValor">Bs 0,00</p>
+          <hr>
+          <small class="text-muted">Fuente: BCV (Banco Central de Venezuela)</small>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+        <button type="button" class="btn btn-primary" id="guardarTasaBtn">Guardar tasa en esta venta</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+
+ 
+// Obtener el valor total de manera segura
+var totalVenta = parseFloat("{{ venta.total|stringformat:'f'|default:'0' }}".replace(',', '.'));
+var ventaTieneTasa = {% if venta.tasa_bcv %}true{% else %}false{% endif %};
+var tasaGuardada = {% if venta.tasa_bcv %}{{ venta.tasa_bcv|stringformat:'f' }}{% else %}null{% endif %};
+var totalBsGuardado = {% if venta.total_bs %}{{ venta.total_bs|stringformat:'f' }}{% else %}null{% endif %};
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// ========== FUNCIÓN PARA COPIAR VENTA ==========
+async function copiarVenta() {
+    // Obtener datos de la venta
+    const cliente = "{{ venta.cliente }}".replace(/&quot;/g, '"');
+    const fecha = "{{ venta.fecha|date:'d/m/Y H:i' }}";
+    const totalUsd = "{{ venta.total|floatformat:2 }}";
+    
+    let tasaBcv = tasaGuardada;
+    let totalBs = totalBsGuardado;
+    
+    // Si la venta no tiene tasa guardada, obtenerla de la API
+    if (!ventaTieneTasa) {
+        try {
+            const response = await fetch('/api/bcv-rate/');
+            const data = await response.json();
+            if (data.success) {
+                tasaBcv = data.usd_rate;
+                totalBs = totalVenta * tasaBcv;
+            }
+        } catch (error) {
+            console.error('Error obteniendo tasa:', error);
+        }
+    }
+    
+    // Construir el mensaje
+    let mensaje = "🧾 *VENTA #{{ venta.pk }}* 🧾\n";
+    mensaje += "━━━━━━━━━━━━━━━━━━━━\n";
+    mensaje += `📋 *Cliente:* ${cliente}\n`;
+    mensaje += `📅 *Fecha:* ${fecha}\n`;
+    mensaje += "━━━━━━━━━━━━━━━━━━━━\n";
+    mensaje += "*🛒 PRODUCTOS:*\n";
+    
+    // Agregar productos
+    {% for d in detalles %}
+    mensaje += `• {{ d.producto.nombre }} x{{ d.cantidad }} → ${{ d.subtotal|floatformat:2 }}\n`;
+    {% endfor %}
+    
+    mensaje += "━━━━━━━━━━━━━━━━━━━━\n";
+    mensaje += `💰 *TOTAL USD:* $${totalUsd}\n`;
+    
+    // Mostrar información de tasa si está disponible
+    if (tasaBcv && totalBs) {
+        mensaje += `💱 *Tasa BCV:* ${typeof tasaBcv === 'number' ? tasaBcv.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : parseFloat(tasaBcv).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Bs/USD\n`;
+        mensaje += `🇻🇪 *TOTAL Bs:* Bs ${typeof totalBs === 'number' ? totalBs.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : parseFloat(totalBs).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}\n`;
+    }
+    
+    mensaje += "━━━━━━━━━━━━━━━━━━━━\n";
+    mensaje += "✅ *¡Gracias por su compra!*";
+    
+    // Crear enlace de WhatsApp
+    const urlWhatsapp = `https://wa.me/?text=${encodeURIComponent(mensaje)}`;
+    
+    // Copiar al portapapeles con tooltip
+    navigator.clipboard.writeText(mensaje).then(() => {
+        // Mostrar tooltip de éxito
+        mostrarTooltip('✅ Mensaje copiado');
+        
+       
+    }).catch(err => {
+        console.error('Error al copiar:', err);
+        mostrarTooltip('❌ Error al copiar', 'danger');
+    });
+}
+
+// Función para mostrar tooltip temporal
+function mostrarTooltip(mensaje, tipo = 'success') {
+    // Buscar o crear el elemento tooltip
+    let tooltip = document.getElementById('copiarTooltip');
+    if (!tooltip) {
+        tooltip = document.createElement('div');
+        tooltip.id = 'copiarTooltip';
+        tooltip.style.position = 'fixed';
+        tooltip.style.bottom = '20px';
+        tooltip.style.left = '50%';
+        tooltip.style.transform = 'translateX(-50%)';
+        tooltip.style.zIndex = '9999';
+        tooltip.style.padding = '10px 20px';
+        tooltip.style.borderRadius = '8px';
+        tooltip.style.fontSize = '14px';
+        tooltip.style.fontWeight = 'bold';
+        tooltip.style.transition = 'opacity 0.3s';
+        tooltip.style.opacity = '0';
+        document.body.appendChild(tooltip);
+    }
+    
+    // Configurar color según tipo
+    if (tipo === 'success') {
+        tooltip.style.backgroundColor = '#28a745';
+        tooltip.style.color = 'white';
+    } else {
+        tooltip.style.backgroundColor = '#dc3545';
+        tooltip.style.color = 'white';
+    }
+    
+    // Mostrar mensaje
+    tooltip.textContent = mensaje;
+    tooltip.style.opacity = '1';
+    
+    // Ocultar después de 2 segundos
+    setTimeout(() => {
+        tooltip.style.opacity = '0';
+    }, 2000);
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const botonCalcular = document.getElementById('calcularBsBtn');
+    const resultadoBs = document.getElementById('resultadoBs');
+    const modalElement = document.getElementById('tasaModal');
+    const botonCopiar = document.getElementById('copiarVentaBtn');
+    
+    let tasaActual = null;
+    let bsModal = null;
+    
+    if (modalElement) {
+        bsModal = new bootstrap.Modal(modalElement);
+    }
+    
+    if (botonCalcular) {
+        botonCalcular.addEventListener('click', obtenerTasaBCV);
+    }
+    
+    if (botonCopiar) {
+        botonCopiar.addEventListener('click', copiarVenta);
+    }
+    
+    function obtenerTasaBCV() {
+        if (bsModal) {
+            const spinner = document.getElementById('tasaSpinner');
+            const contenido = document.getElementById('tasaContenido');
+            if (spinner) spinner.style.display = 'block';
+            if (contenido) contenido.style.display = 'none';
+            bsModal.show();
+        }
+        
+        fetch('/api/bcv-rate/')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    tasaActual = data.usd_rate;
+                    const totalBs = totalVenta * tasaActual;
+                    
+                    const tasaValorSpan = document.getElementById('tasaValor');
+                    const totalBsValorSpan = document.getElementById('totalBsValor');
+                    
+                    if (tasaValorSpan) tasaValorSpan.textContent = tasaActual.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' Bs/USD';
+                    if (totalBsValorSpan) totalBsValorSpan.textContent = 'Bs ' + totalBs.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                    
+                    const spinner = document.getElementById('tasaSpinner');
+                    const contenido = document.getElementById('tasaContenido');
+                    if (spinner) spinner.style.display = 'none';
+                    if (contenido) contenido.style.display = 'block';
+                } else {
+                    throw new Error('No se pudo obtener la tasa');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                const spinner = document.getElementById('tasaSpinner');
+                const contenido = document.getElementById('tasaContenido');
+                if (spinner) spinner.style.display = 'none';
+                if (contenido) {
+                    contenido.style.display = 'block';
+                    document.getElementById('tasaValor').innerHTML = '<span class="text-danger">No disponible</span>';
+                    document.getElementById('totalBsValor').innerHTML = '<span class="text-danger">Intente más tarde</span>';
+                }
+            });
+    }
+    
+    const guardarBtn = document.getElementById('guardarTasaBtn');
+    if (guardarBtn) {
+        guardarBtn.addEventListener('click', function() {
+            if (!tasaActual) return;
+            
+            fetch('/api/venta/{{ venta.pk }}/guardar-tasa/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({ tasa: tasaActual })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert('Error al guardar la tasa');
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        });
+    }
+    
+    console.log('Total de la venta (USD):', totalVenta);
+});
+</script>
 {% endblock %}

@@ -1,0 +1,239 @@
+{% extends 'ventas/base.html' %}
+{% load static %}
+
+{% block title %}Resumen de Ventas por Cliente{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="fw-bold">📊 Resumen de Ventas por Cliente</h2>
+    <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary">← Volver</a>
+  </div>
+
+  <!-- Filtros -->
+  <div class="card mb-4">
+    <div class="card-header bg-white">
+      <h5 class="mb-0">🔍 Filtros</h5>
+    </div>
+    <div class="card-body">
+      <form method="GET" class="row g-3" id="filtroForm">
+        <div class="col-md-3">
+          <label class="form-label small fw-bold">Cliente</label>
+          <select name="cliente" class="form-select">
+            <option value="">-- Todos los clientes --</option>
+            {% for cliente in clientes_lista %}
+            <option value="{{ cliente.id }}" {% if cliente_seleccionado|stringformat:"s" == cliente.id|stringformat:"s" %}selected{% endif %}>
+              {{ cliente.nombre_completo }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        
+        <div class="col-md-2">
+          <label class="form-label small fw-bold">Desde</label>
+          <input type="date" name="fecha_desde" class="form-control" value="{{ fecha_desde }}">
+        </div>
+        
+        <div class="col-md-2">
+          <label class="form-label small fw-bold">Hasta</label>
+          <input type="date" name="fecha_hasta" class="form-control" value="{{ fecha_hasta }}">
+        </div>
+        
+        <div class="col-md-2">
+          <label class="form-label small fw-bold">Estado Pago</label>
+          <select name="estado_pago" class="form-select">
+            <option value="">-- Todos --</option>
+            <option value="pendiente" {% if estado_pago_seleccionado == 'pendiente' %}selected{% endif %}>Pendiente</option>
+            <option value="parcial" {% if estado_pago_seleccionado == 'parcial' %}selected{% endif %}>Parcial</option>
+            <option value="pagado" {% if estado_pago_seleccionado == 'pagado' %}selected{% endif %}>Pagado</option>
+          </select>
+        </div>
+        
+        <div class="col-md-1 d-flex align-items-end">
+          <button type="submit" class="btn btn-primary w-100">
+            🔍 Filtrar
+          </button>
+        </div>
+        
+        <div class="col-md-1 d-flex align-items-end">
+          <a href="{% url 'resumen_cliente_ventas' %}" class="btn btn-outline-secondary w-100">
+            🗑️ Limpiar
+          </a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Tasa BCV actual -->
+  <div class="alert alert-info text-center py-2 mb-4">
+    <small>
+      💱 <strong>Tasa BCV utilizada:</strong> {{ tasa_bcv_actual|floatformat:2 }} Bs/USD
+      {% if fecha_desde_obj or fecha_hasta_obj %}
+        | 📅 Período: {% if fecha_desde_obj %}{{ fecha_desde_obj|date:"d/m/Y" }}{% else %}inicio{% endif %} - {% if fecha_hasta_obj %}{{ fecha_hasta_obj|date:"d/m/Y" }}{% else %}hoy{% endif %}
+      {% endif %}
+    </small>
+  </div>
+
+  <!-- Resumen Global -->
+  <div class="card mb-4">
+    <div class="card-header bg-white">
+      <h5 class="mb-0">📈 Resumen Global</h5>
+    </div>
+    <div class="card-body">
+      <div class="row text-center">
+        <div class="col-md-3">
+          <div class="border-end">
+            <small class="text-muted">Total Clientes</small>
+            <h3 class="text-primary">{{ total_clientes_global|default:0 }}</h3>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="border-end">
+            <small class="text-muted">Total Ventas</small>
+            <h3 class="text-success">{{ total_ventas_global|default:0 }}</h3>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="border-end">
+            <small class="text-muted">Total USD</small>
+            <h3 class="text-success">${{ total_global_usd|default:0|floatformat:2 }}</h3>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div>
+            <small class="text-muted">Total Bs</small>
+            <h3 class="text-primary">Bs {{ total_global_bs|default:0|floatformat:2 }}</h3>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Resumen por Cliente -->
+  {% if resumen_clientes %}
+  <div class="row g-4">
+    {% for cliente_nombre, data in resumen_clientes.items %}
+    <div class="col-md-6 col-lg-4">
+      <div class="card h-100 shadow-sm">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+          <h5 class="mb-0">
+            👤 {{ cliente_nombre|truncatechars:25 }}
+            <span class="badge bg-secondary ms-2">{{ data.cantidad_ventas }} ventas</span>
+          </h5>
+          <button type="button" class="btn btn-sm btn-outline-info" data-bs-toggle="collapse" data-bs-target="#ventas-{{ data.cliente_id }}">
+            📋 Ver
+          </button>
+        </div>
+        <div class="card-body">
+          <div class="row text-center mb-3">
+            <div class="col-6">
+              <div class="border-end">
+                <small class="text-muted d-block">Total USD</small>
+                <span class="h5 text-success">${{ data.total_usd|floatformat:2 }}</span>
+              </div>
+            </div>
+            <div class="col-6">
+              <div>
+                <small class="text-muted d-block">Total Bs</small>
+                <span class="h5 text-primary">Bs {{ data.total_bs|floatformat:2 }}</span>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Resumen de estados de pago -->
+          <div class="small text-muted mb-2">
+            <i class="bi bi-credit-card"></i> Estados de pago:
+          </div>
+          <div class="d-flex justify-content-between small mb-3">
+            <span class="text-danger">⚠️ Pendientes: {{ data.pendientes|default:0 }}</span>
+            <span class="text-warning">🔄 Parciales: {{ data.parciales|default:0 }}</span>
+            <span class="text-success">✅ Pagados: {{ data.pagados|default:0 }}</span>
+          </div>
+          
+          <div class="small text-muted">
+            <i class="bi bi-calculator"></i> 
+            <strong>Promedio por venta:</strong> 
+            Bs {{ data.total_bs|divisibleby:data.cantidad_ventas|floatformat:2 }}
+          </div>
+        </div>
+        
+        <!-- Tabla de ventas del cliente (colapsable) -->
+        <div class="collapse" id="ventas-{{ data.cliente_id }}">
+          <div class="card-footer bg-light p-0">
+            <div class="table-responsive">
+              <table class="table table-sm table-hover mb-0">
+                <thead class="table-secondary">
+                  <table>
+                    <th>Fecha</th>
+                    <th class="text-center">Total USD</th>
+                    <th class="text-center">Total Bs</th>
+                    <th class="text-center">Estado</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for venta in data.ventas %}
+                  <tr>
+                    <td><small>{{ venta.fecha|date:"d/m/Y H:i" }}</small></td>
+                    <td class="text-center"><small>${{ venta.total|floatformat:2 }}</small></td>
+                    <td class="text-center"><small>Bs {{ venta.total_bs|floatformat:2 }}</small></td>
+                    <td class="text-center">
+                      <span class="badge 
+                        {% if venta.estado_pago == 'pagado' %}bg-success
+                        {% elif venta.estado_pago == 'parcial' %}bg-warning
+                        {% else %}bg-danger{% endif %}">
+                        {{ venta.estado_pago_display }}
+                      </span>
+                    </td>
+                    <td class="text-center">
+                      <a href="{% url 'venta_detalle' venta.pk %}" class="btn btn-sm btn-outline-primary" target="_blank">
+                        Ver
+                      </a>
+                    </td>
+                  </tr>
+                  {% empty %}
+                  <tr>
+                    <td colspan="5" class="text-center text-muted py-3">
+                      No hay ventas en este período
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+                <tfoot class="table-light">
+                  <tr>
+                    <td class="fw-bold">TOTALES</td>
+                    <td class="text-center fw-bold">${{ data.total_usd|floatformat:2 }}</td>
+                    <td class="text-center fw-bold">Bs {{ data.total_bs|floatformat:2 }}</td>
+                    <td colspan="2"></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="alert alert-info text-center py-5">
+    <i class="bi bi-inbox fs-1"></i>
+    <h5 class="mt-3">No hay ventas registradas</h5>
+    <p class="mb-0">Prueba a cambiar los filtros o crear nuevas ventas.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const clienteSelect = document.querySelector('select[name="cliente"]');
+  if (clienteSelect) {
+    clienteSelect.addEventListener('change', function() {
+      document.getElementById('filtroForm').submit();
+    });
+  }
+});
+</script>
+{% endblock %}

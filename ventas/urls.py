@@ -24,8 +24,12 @@ urlpatterns = [
     path('clientes/<int:pk>/eliminar/', views.cliente_eliminar, name='cliente_eliminar'),
     #path('venta/<int:venta_pk>/cambiar-pago/', views.venta_cambiar_pago, name='venta_cambiar_pago'),
     path('ventas/<int:venta_pk>/cambiar-pago-ajax/', views.venta_cambiar_pago_ajax, name='venta_cambiar_pago_ajax'),
+    path('resumen-cliente-ventas/', views.resumen_cliente_ventas, name='resumen_cliente_ventas'),
     # Ventas
     path('ventas/', views.venta_lista, name='venta_lista'),
     path('ventas/nueva/', views.venta_nueva, name='venta_nueva'),
     path('ventas/<int:pk>/', views.venta_detalle, name='venta_detalle'),
+    #API para tasa BCV
+    path('api/bcv-rate/', views.api_bcv_rate, name='api_bcv_rate'),
+    path('api/venta/<int:pk>/guardar-tasa/', views.venta_guardar_tasa, name='venta_guardar_tasa'),
 ]

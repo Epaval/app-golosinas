@@ -22,6 +22,7 @@ class Producto(models.Model):
     def __str__(self):
         return f"{self.nombre} - ${self.precio_unitario}"
 
+
 class Cliente(models.Model):
     nombre = models.CharField(max_length=150, verbose_name="Nombre")
     apellido = models.CharField(max_length=150, blank=True, verbose_name="Apellido")
@@ -87,6 +88,24 @@ class Venta(models.Model):
         verbose_name="Fecha de Pago"
     )
 
+    # ========== NUEVOS CAMPOS PARA TASA BCV ==========
+    total_usd = models.DecimalField(
+        max_digits=12, decimal_places=2,
+        default=0, null=True, blank=True,
+        verbose_name="Total (USD)"
+    )
+    total_bs = models.DecimalField(
+        max_digits=12, decimal_places=2,
+        default=0, null=True, blank=True,
+        verbose_name="Total (Bolívares)"
+    )
+    tasa_bcv = models.DecimalField(
+        max_digits=10, decimal_places=2,
+        null=True, blank=True,
+        verbose_name="Tasa BCV (USD/BS)"
+    )
+    # ================================================
+
     class Meta:
         verbose_name = "Venta"
         verbose_name_plural = "Ventas"
@@ -100,6 +119,16 @@ class Venta(models.Model):
         self.total = total
         self.save(update_fields=['total'])
         return total
+
+    def calcular_totales_con_tasa(self, tasa_bcv_valor):
+        """
+        Calcula total_usd y total_bs usando la tasa proporcionada
+        """
+        self.total_usd = self.total
+        self.total_bs = self.total * tasa_bcv_valor if tasa_bcv_valor else 0
+        self.tasa_bcv = tasa_bcv_valor
+        self.save(update_fields=['total_usd', 'total_bs', 'tasa_bcv'])
+        return self.total_usd, self.total_bs
 
 
 class DetalleVenta(models.Model):
