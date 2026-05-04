@@ -366,7 +366,7 @@ def resumen_cliente_ventas(request):
 
 # ─── Ventas ────────────────────────────────────────────────────────────────────
 
-@login_required
+
 def venta_lista(request):
     ventas = Venta.objects.select_related(
         'cliente', 'usuario'
@@ -446,7 +446,7 @@ def venta_nueva(request):
     })
 
 
-@login_required
+
 def venta_detalle(request, pk):
     venta = get_object_or_404(
         Venta.objects.select_related('cliente', 'usuario'), pk=pk)
@@ -455,7 +455,7 @@ def venta_detalle(request, pk):
                   {'venta': venta, 'detalles': detalles})
 
 
-@login_required
+
 def cliente_ventas_detalle(request, pk):
     cliente = get_object_or_404(Cliente, pk=pk, activo=True)
     estado_pago = request.GET.get('estado_pago', '')
