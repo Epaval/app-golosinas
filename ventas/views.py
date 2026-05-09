@@ -366,7 +366,7 @@ def resumen_cliente_ventas(request):
 
 # ─── Ventas ────────────────────────────────────────────────────────────────────
 
-
+@login_required
 def venta_lista(request):
     ventas = Venta.objects.select_related(
         'cliente', 'usuario'
@@ -382,24 +382,26 @@ def venta_lista(request):
 
 def venta_nueva(request):
     form = VentaForm(request.POST or None)
-    
+
     if request.method == 'POST':
         print("\n📥 POST keys:", list(request.POST.keys()))
         print("📦 Productos recibidos:", request.POST.getlist('producto_id[]'))
-        
+
         if form.is_valid():
             try:
                 with transaction.atomic():
                     venta = form.save(commit=False)
-                    venta.usuario = request.user
+                    if request.user.is_authenticated:
+                        venta.usuario = request.user
+                    else:
+                        venta.usuario = None
                     venta.fecha = timezone.now()
                     venta.estado = 'completada'
                     venta.estado_pago = 'pendiente'
                     venta.save()
-                    
+
                     productos_ids = request.POST.getlist('producto_id[]')
                     cantidades = request.POST.getlist('cantidad[]')
-                    
                     detalles_validos = 0
                     for i, pid in enumerate(productos_ids):
                         if not pid:
@@ -407,17 +409,17 @@ def venta_nueva(request):
                         try:
                             cantidad = int(cantidades[i])
                             producto = Producto.objects.get(pk=pid, activo=True)
-                            
+
                             if cantidad <= 0 or cantidad > producto.stock:
                                 continue
-                            
+
                             DetalleVenta.objects.create(
                                 venta=venta,
                                 producto=producto,
                                 cantidad=cantidad,
                                 precio_unitario=producto.precio_unitario
                             )
-                            
+
                             producto.stock = max(0, producto.stock - cantidad)
                             producto.save(update_fields=['stock'])
                             detalles_validos += 1
@@ -431,7 +433,7 @@ def venta_nueva(request):
                     
                     venta.calcular_total()
                     messages.success(request, f'✅ Venta #{venta.pk} registrada por ${venta.total:.2f}.')
-                    return redirect('venta_lista')
+                    return redirect('venta_nueva')
                     
             except Exception as e:
                 print(f"❌ Error DB: {e}")
@@ -439,14 +441,14 @@ def venta_nueva(request):
         else:
             print(f"❌ Errores del form: {form.errors}")
             messages.error(request, f'❌ Revisa los datos: {form.errors.as_text()}')
-    
+    form = VentaForm()
     return render(request, 'ventas/venta_form.html', {
         'form': form,
         'productos': Producto.objects.filter(activo=True, stock__gt=0)
     })
 
 
-
+@login_required
 def venta_detalle(request, pk):
     venta = get_object_or_404(
         Venta.objects.select_related('cliente', 'usuario'), pk=pk)
@@ -455,7 +457,7 @@ def venta_detalle(request, pk):
                   {'venta': venta, 'detalles': detalles})
 
 
-
+@login_required
 def cliente_ventas_detalle(request, pk):
     cliente = get_object_or_404(Cliente, pk=pk, activo=True)
     estado_pago = request.GET.get('estado_pago', '')

@@ -62,10 +62,12 @@ class Venta(models.Model):
         Cliente, on_delete=models.PROTECT,
         related_name='ventas', verbose_name="Cliente"
     )
-    usuario = models.ForeignKey(
+    usuario = models.ForeignKey(        
         User, on_delete=models.PROTECT,
+        null=True, blank=True,
         related_name='ventas', verbose_name="Registrado por"
     )
+    
     fecha = models.DateTimeField(auto_now_add=True, verbose_name="Fecha")
     estado = models.CharField(
         max_length=15, choices=ESTADO_CHOICES,
